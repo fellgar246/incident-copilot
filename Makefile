@@ -1,7 +1,7 @@
 PYTHON ?= python3
 TERRAFORM_DIR := infra/environments/dev
-ifneq (,$(wildcard .venv/bin))
-  export PATH := $(CURDIR)/.venv/bin:$(PATH)
+ifneq (,$(wildcard $(CURDIR)/.venv/bin/python))
+  PYTHON := $(CURDIR)/.venv/bin/python
 endif
 
 .PHONY: help install lint fmt typecheck test terraform-fmt terraform-validate ci
@@ -14,7 +14,7 @@ help:
 	@echo "  typecheck            mypy + tsc"
 	@echo "  test                 pytest"
 	@echo "  terraform-fmt        terraform fmt -recursive"
-	@echo "  terraform-validate   terraform init -backend=false && validate"
+	@echo "  terraform-validate   terraform fmt -check + init -backend=false + validate"
 	@echo "  ci                   lint, typecheck, test, terraform-validate"
 
 install:
@@ -22,26 +22,26 @@ install:
 	npm install
 
 lint:
-	ruff check .
+	$(PYTHON) -m ruff check .
 	npm run lint
 
 fmt:
-	ruff format .
+	$(PYTHON) -m ruff format .
 	terraform fmt -recursive infra
 
 typecheck:
-	mypy packages apps/api services
+	$(PYTHON) -m mypy packages apps/api services
 	npm run typecheck
 
 test:
-	pytest
+	$(PYTHON) -m pytest
 
 terraform-fmt:
 	terraform fmt -recursive infra
 
 terraform-validate:
+	terraform fmt -check -recursive infra
 	cd $(TERRAFORM_DIR) && terraform init -backend=false -input=false
-	cd $(TERRAFORM_DIR) && terraform fmt -check
 	cd $(TERRAFORM_DIR) && terraform validate
 
 ci: lint typecheck test terraform-validate

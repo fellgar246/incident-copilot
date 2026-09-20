@@ -9,10 +9,16 @@ locals {
     WARNING  = 60
     CRITICAL = 100
   }
+  resource_tags = {
+    project     = var.project
+    environment = var.environment
+    owner       = var.owner
+  }
 }
 
 resource "aws_sns_topic" "budget_alerts" {
   name = "${var.project}-${var.environment}-budget-alerts"
+  tags = local.resource_tags
 }
 
 data "aws_iam_policy_document" "budget_sns" {
@@ -54,6 +60,7 @@ resource "aws_budgets_budget" "monthly" {
   limit_amount = format("%.2f", var.monthly_budget_usd)
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
+  tags         = local.resource_tags
 
   cost_types {
     include_credit             = false
@@ -96,6 +103,7 @@ resource "aws_budgets_budget" "ai_services" {
   limit_amount = format("%.2f", var.monthly_budget_usd)
   limit_unit   = "USD"
   time_unit    = "MONTHLY"
+  tags         = local.resource_tags
 
   cost_filter {
     name   = "Service"

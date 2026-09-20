@@ -1,0 +1,13 @@
+# Remote state plan for a shared environment.
+# 1. Create an S3 bucket and DynamoDB lock table outside this stack.
+# 2. Copy this file to backend.hcl (gitignored).
+# 3. Switch versions.tf from backend "local" to backend "s3" {}.
+# 4. terraform init -backend-config=backend.hcl -migrate-state
+#
+# Do not check terraform.tfstate or backend.hcl into git.
+
+bucket         = "REPLACE_ME-ai-incident-copilot-tfstate"
+key            = "dev/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "ai-incident-copilot-tf-locks"
+encrypt        = true

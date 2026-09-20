@@ -54,7 +54,7 @@ cp .env.example .env
 make ci
 ```
 
-Never commit `.env`, `*.tfvars`, or AWS credentials. `.env.example` is the source of truth for quota keys.
+Never commit `.env`, `*.tfvars`, `backend.hcl`, Terraform state, or AWS credentials. `.env.example` is the source of truth for quota keys.
 
 ## Domain simulator (no AWS)
 
@@ -89,6 +89,8 @@ Budgets are not real-time kill switches.
 
 ## Terraform bootstrap
 
+Follow [docs/runbooks/account-bootstrap.md](docs/runbooks/account-bootstrap.md) once (Paid plan, MFA, region, credits). Then:
+
 ```bash
 cd infra/environments/dev
 cp terraform.tfvars.example terraform.tfvars
@@ -98,7 +100,7 @@ terraform plan
 terraform apply   # creates budget + SNS; OIDC is off until enable_github_oidc=true
 ```
 
-State is **local** by default (`terraform.tfstate`, gitignored). Plan an S3 backend with a DynamoDB lock table before anyone else applies this stack. Do not check the state file in.
+State is **local** by default (`terraform.tfstate`, gitignored). Before a shared apply, copy `backend.hcl.example` to `backend.hcl`, switch `versions.tf` to an `s3` backend, and run `terraform init -backend-config=backend.hcl -migrate-state`. Do not check the state file or `backend.hcl` in.
 
 Confirm AgentCore and Managed Knowledge Base availability in the chosen region before later slices. Confirm MFA on the root/account user in the AWS Console once; after that, do not use Console as the product flow.
 
@@ -149,4 +151,4 @@ Only `ci-deploy-role` exists in this bootstrap, and only when OIDC is enabled.
 - [ADR-002 Product architecture](docs/adrs/ADR-002-product-architecture.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Demo script](docs/architecture/demo.md)
-- Specs in [`specs/`](specs/00-constitution.md)
+- [Account bootstrap](docs/runbooks/account-bootstrap.md)

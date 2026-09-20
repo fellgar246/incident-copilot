@@ -8,6 +8,11 @@ variable "environment" {
   description = "Environment name (dev)."
 }
 
+variable "owner" {
+  type        = string
+  description = "Owner tag applied to tagged resources in this module."
+}
+
 variable "monthly_budget_usd" {
   type        = number
   description = "Monthly cost target used as the AWS Budget limit."
@@ -27,6 +32,6 @@ variable "create_ai_services_budget" {
 
 variable "ai_budget_service_names" {
   type        = list(string)
-  description = "Cost Explorer service names included in the optional AI budget."
+  description = "Cost Explorer service names included in the optional AI budget. AgentCore usage is billed under Amazon Bedrock."
   default     = ["Amazon Bedrock"]
 }

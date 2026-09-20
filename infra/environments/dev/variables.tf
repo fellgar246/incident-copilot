@@ -2,6 +2,11 @@ variable "aws_region" {
   type        = string
   description = "AWS region. Must support Bedrock AgentCore before later slices."
   default     = "us-east-1"
+
+  validation {
+    condition     = length(var.aws_region) > 0
+    error_message = "aws_region must be a non-empty region id such as us-east-1."
+  }
 }
 
 variable "project" {
@@ -26,18 +31,33 @@ variable "monthly_budget_usd" {
   type        = number
   description = "Monthly cost target used as the AWS Budget limit."
   default     = 5
+
+  validation {
+    condition     = var.monthly_budget_usd > 0
+    error_message = "monthly_budget_usd must be greater than zero."
+  }
 }
 
 variable "log_retention_days" {
   type        = number
   description = "CloudWatch log retention used by later modules."
   default     = 7
+
+  validation {
+    condition     = var.log_retention_days >= 1
+    error_message = "log_retention_days must be at least 1."
+  }
 }
 
 variable "max_incidents_per_day" {
   type        = number
   description = "Application quota mirrored into infrastructure outputs."
   default     = 10
+
+  validation {
+    condition     = var.max_incidents_per_day >= 0
+    error_message = "max_incidents_per_day must be >= 0."
+  }
 }
 
 variable "knowledge_corpus_enabled" {

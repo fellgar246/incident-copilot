@@ -31,12 +31,20 @@ resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = var.github_oidc_thumbprints
+
+  lifecycle {
+    precondition {
+      condition     = length(var.github_org) > 0 && var.github_org != "YOUR_GITHUB_ORG"
+      error_message = "github_org must be set to a real GitHub org or user when enable_github_oidc is true."
+    }
+  }
 }
 
 resource "aws_iam_role" "ci_deploy" {
   count              = var.enable_github_oidc ? 1 : 0
   name               = "${var.project}-${var.environment}-ci-deploy"
   assume_role_policy = data.aws_iam_policy_document.github_oidc_assume[0].json
+  description        = "Skeleton CI role assumed by GitHub Actions via OIDC. Deploy permissions are added later."
 }
 
 # Skeleton only: identity check. Deploy permissions are added later.

@@ -3,6 +3,7 @@ module "budgets" {
 
   project                   = var.project
   environment               = var.environment
+  owner                     = var.owner
   monthly_budget_usd        = var.monthly_budget_usd
   notification_emails       = var.budget_notification_emails
   create_ai_services_budget = true

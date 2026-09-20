@@ -59,3 +59,17 @@ def test_enforce_quota_raises_with_stop_reason() -> None:
         quotas.enforce("MAX_INCIDENTS_PER_DAY", used=10, limit=quotas.max_incidents_per_day)
     assert exc_info.value.stop_reason == STOP_REASON
     assert exc_info.value.quota_name == "MAX_INCIDENTS_PER_DAY"
+
+
+def test_eval_sample_rate_must_be_a_fraction() -> None:
+    env = parse_env_file(ENV_EXAMPLE)
+    env["EVAL_SAMPLE_RATE"] = "1.5"
+    with pytest.raises(ValueError, match="EVAL_SAMPLE_RATE"):
+        load_quotas(env)
+
+
+def test_target_monthly_cost_must_be_positive() -> None:
+    env = parse_env_file(ENV_EXAMPLE)
+    env["TARGET_MONTHLY_COST_USD"] = "0"
+    with pytest.raises(ValueError, match="TARGET_MONTHLY_COST_USD"):
+        load_quotas(env)

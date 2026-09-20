@@ -95,6 +95,12 @@ class AppQuotas:
     eval_sample_rate: float
     stop_reason: str = STOP_REASON
 
+    def __post_init__(self) -> None:
+        if self.target_monthly_cost_usd <= 0:
+            raise ValueError("TARGET_MONTHLY_COST_USD must be > 0")
+        if not 0 <= self.eval_sample_rate <= 1:
+            raise ValueError("EVAL_SAMPLE_RATE must be between 0 and 1")
+
     def enforce(self, quota_name: str, used: int, limit: int) -> None:
         """Raise when `used` has already reached `limit`."""
         if used >= limit:
