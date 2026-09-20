@@ -1,0 +1,14 @@
+{
+  "name": "ai-incident-copilot",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "lint": "npm run lint -w web",
+    "typecheck": "npm run typecheck -w web"
+  }
+}

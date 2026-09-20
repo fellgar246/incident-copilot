@@ -1,0 +1,212 @@
+{
+  "scenario": "connection_pool_exhaustion",
+  "seed": "golden",
+  "incident": {
+    "incident_id": "inc_7fe3b99c0a2787f6",
+    "service": "orders-api",
+    "severity": "HIGH",
+    "status": "DETECTED",
+    "alarm_name": "orders-latency-p95",
+    "started_at": "2026-09-20T14:00:00Z",
+    "updated_at": "2026-09-20T14:00:00Z",
+    "correlation_id": "cor_909320e31bfab228",
+    "diagnosis": null,
+    "confidence": null,
+    "recommended_action": null,
+    "approval_status": null,
+    "agent_run_id": null,
+    "estimated_ai_cost_usd": 0.0,
+    "simulation_id": "sim_88b55d25340702e5",
+    "source_event_id": "evt_4240000274228b79",
+    "active_remediation_id": null,
+    "approval_id": null
+  },
+  "events": [
+    {
+      "event_id": "evt_4240000274228b79",
+      "incident_id": "inc_7fe3b99c0a2787f6",
+      "event_type": "ALARM_RECEIVED",
+      "timestamp": "2026-09-20T14:00:00Z",
+      "actor": "system",
+      "payload": {
+        "alarm_name": "orders-latency-p95",
+        "scenario": "connection_pool_exhaustion",
+        "schema_version": "1"
+      },
+      "from_status": null,
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_798f5e2c92ea908b",
+      "incident_id": "inc_7fe3b99c0a2787f6",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:01:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_ae709c1fefa41934",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_c8b6af528a3d21db",
+      "incident_id": "inc_7fe3b99c0a2787f6",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:01:30Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_f359e122bc7122cf",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_cf1d6dd1ce15dc66",
+      "incident_id": "inc_7fe3b99c0a2787f6",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:03:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_ad12ec761ff6522b",
+        "kind": "retrieved_guidance"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evd_ae709c1fefa41934",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "orders-api latency is elevated while CPU remains well below saturation.",
+      "observed_at": "2026-09-20T14:01:00Z",
+      "payload": {
+        "latency_p95_ms": 1600,
+        "cpu_percent": 22
+      }
+    },
+    {
+      "evidence_id": "evd_f359e122bc7122cf",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.logs",
+      "summary": "Logs contain POOL_EXHAUSTED; checked-out connections sit at 98/100.",
+      "observed_at": "2026-09-20T14:01:30Z",
+      "payload": {
+        "error_code": "POOL_EXHAUSTED",
+        "checked_out": 98,
+        "max": 100
+      }
+    },
+    {
+      "evidence_id": "evd_ad12ec761ff6522b",
+      "kind": "retrieved_guidance",
+      "source": "knowledge.runbooks",
+      "summary": "Runbook rb_orders_pool_exhaustion distinguishes pool saturation from CPU.",
+      "observed_at": "2026-09-20T14:03:00Z",
+      "payload": {
+        "document_id": "rb_orders_pool_exhaustion"
+      }
+    }
+  ],
+  "deployments": [
+    {
+      "service": "orders-api",
+      "version": "2026.09.18.1",
+      "commit_sha": "feedfacecafebeef1234",
+      "deployed_at": "2026-09-18T14:00:00Z",
+      "change_summary": "Unrelated schema comment change"
+    }
+  ],
+  "expected_diagnosis": {
+    "summary": "Latency is explained by a saturated connection pool, not CPU.",
+    "probable_cause": "Connection pool exhaustion (POOL_EXHAUSTED at 98/100).",
+    "confidence": 0.88,
+    "evidence": [
+      {
+        "evidence_id": "evd_ae709c1fefa41934",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "orders-api latency is elevated while CPU remains well below saturation.",
+        "observed_at": "2026-09-20T14:01:00Z",
+        "payload": {
+          "latency_p95_ms": 1600,
+          "cpu_percent": 22
+        }
+      },
+      {
+        "evidence_id": "evd_f359e122bc7122cf",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.logs",
+        "summary": "Logs contain POOL_EXHAUSTED; checked-out connections sit at 98/100.",
+        "observed_at": "2026-09-20T14:01:30Z",
+        "payload": {
+          "error_code": "POOL_EXHAUSTED",
+          "checked_out": 98,
+          "max": 100
+        }
+      },
+      {
+        "evidence_id": "evd_ad12ec761ff6522b",
+        "kind": "retrieved_guidance",
+        "source": "knowledge.runbooks",
+        "summary": "Runbook rb_orders_pool_exhaustion distinguishes pool saturation from CPU.",
+        "observed_at": "2026-09-20T14:03:00Z",
+        "payload": {
+          "document_id": "rb_orders_pool_exhaustion"
+        }
+      }
+    ],
+    "retrieved_sources": [
+      "rb_orders_pool_exhaustion"
+    ],
+    "alternative_hypotheses": [
+      "CPU saturation",
+      "Garbage collection storm"
+    ],
+    "recommended_action": "Raise demo pool size by 1 (SAFE_WRITE) after approval",
+    "requires_approval": true,
+    "destructive": false
+  },
+  "telemetry": {
+    "logs": [
+      {
+        "timestamp": "2026-09-20T14:01:10Z",
+        "service": "orders-api",
+        "level": "ERROR",
+        "message": "POOL_EXHAUSTED waiting for checkout",
+        "fields": {
+          "error_code": "POOL_EXHAUSTED",
+          "checked_out": 98,
+          "max": 100
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "orders-api",
+        "name": "latency_p95",
+        "value": 1600.0,
+        "unit": "Milliseconds"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "orders-api",
+        "name": "cpu_percent",
+        "value": 22.0,
+        "unit": "Percent"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "orders-api",
+        "name": "db_connections",
+        "value": 98.0,
+        "unit": "Count"
+      }
+    ]
+  },
+  "approval": null
+}

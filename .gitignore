@@ -1,0 +1,64 @@
+# Secrets and local env
+.env
+.env.*
+!.env.example
+!.env*.example
+*.pem
+*.key
+credentials
+credentials.json
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+.env/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.tox/
+
+# Node
+node_modules/
+.npm
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Misc
+*.log
+tmp/
+.cache/
+_origen/

@@ -1,0 +1,1 @@
+"""Incident worker package placeholder."""

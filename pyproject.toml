@@ -1,0 +1,64 @@
+[project]
+name = "ai-incident-copilot-workspace"
+version = "0.1.0"
+description = "Workspace tooling for the AI Incident Copilot monorepo."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Portfolio" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.11",
+  "pydantic>=2.9",
+  "pytest>=8.3",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["packages", "apps", "services", "scripts", "tests"]
+extend-exclude = [".terraform", "node_modules", "_origen", ".next"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"packages/**/tests/**" = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages", "apps", "services", "tests"]
+pythonpath = [
+  "packages/cost-guardrails/src",
+  "packages/contracts/src",
+  "packages/observability/src",
+  "services/simulator/src",
+]
+addopts = "-q --strict-markers"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = [
+  "packages/cost-guardrails/src",
+  "packages/contracts/src",
+  "packages/observability/src",
+  "services/simulator/src",
+]
+exclude = [
+  "(^|/)tests/",
+  "^_origen/",
+  "^infra/",
+  "^apps/web/",
+  "^node_modules/",
+]

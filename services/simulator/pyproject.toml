@@ -1,0 +1,18 @@
+[project]
+name = "simulator"
+version = "0.1.0"
+description = "Deterministic incident simulator for local demos and tests."
+requires-python = ">=3.12"
+dependencies = [
+  "incident-contracts",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]

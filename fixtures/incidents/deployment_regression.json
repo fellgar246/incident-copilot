@@ -1,0 +1,296 @@
+{
+  "scenario": "deployment_regression",
+  "seed": "golden",
+  "incident": {
+    "incident_id": "inc_43aada31aa140261",
+    "service": "payments-api",
+    "severity": "HIGH",
+    "status": "DETECTED",
+    "alarm_name": "payments-5xx-rate",
+    "started_at": "2026-09-20T14:00:00Z",
+    "updated_at": "2026-09-20T14:00:00Z",
+    "correlation_id": "cor_16a15625b9c1e7c0",
+    "diagnosis": null,
+    "confidence": null,
+    "recommended_action": null,
+    "approval_status": null,
+    "agent_run_id": null,
+    "estimated_ai_cost_usd": 0.0,
+    "simulation_id": "sim_9d1d63c695d24c3c",
+    "source_event_id": "evt_7d41924070e5a6e4",
+    "active_remediation_id": null,
+    "approval_id": null
+  },
+  "events": [
+    {
+      "event_id": "evt_7d41924070e5a6e4",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "ALARM_RECEIVED",
+      "timestamp": "2026-09-20T14:00:00Z",
+      "actor": "system",
+      "payload": {
+        "alarm_name": "payments-5xx-rate",
+        "scenario": "deployment_regression",
+        "schema_version": "1"
+      },
+      "from_status": null,
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_aa494d280db3e85a",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:02:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_15011954018452f6",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_c5cec490e513ae1b",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:02:15Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_80a3b6696be0dab5",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_14553551e8619ba2",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:03:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_0a2d045df3f135aa",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_48e4557916beae86",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T13:42:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_0736c46fd6c615b8",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_506926995b7a8f7d",
+      "incident_id": "inc_43aada31aa140261",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:04:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_9409729f1bc19ef7",
+        "kind": "retrieved_guidance"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evd_15011954018452f6",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "HTTP 5xx rate increased immediately after the latest payments-api deploy.",
+      "observed_at": "2026-09-20T14:02:00Z",
+      "payload": {
+        "metric": "5xx_rate",
+        "before": 0.2,
+        "after": 8.4,
+        "unit": "Percent"
+      }
+    },
+    {
+      "evidence_id": "evd_80a3b6696be0dab5",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "Latency p95 rose from 180ms to 2100ms in the same window.",
+      "observed_at": "2026-09-20T14:02:15Z",
+      "payload": {
+        "metric": "latency_p95",
+        "before_ms": 180,
+        "after_ms": 2100
+      }
+    },
+    {
+      "evidence_id": "evd_0a2d045df3f135aa",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.logs",
+      "summary": "Error logs show repeated UPSTREAM_TIMEOUT from the payments client.",
+      "observed_at": "2026-09-20T14:03:00Z",
+      "payload": {
+        "error_code": "UPSTREAM_TIMEOUT",
+        "count": 47
+      }
+    },
+    {
+      "evidence_id": "evd_0736c46fd6c615b8",
+      "kind": "observed_evidence",
+      "source": "deployments",
+      "summary": "Version 2026.09.20.3 shipped 18 minutes before the alarm.",
+      "observed_at": "2026-09-20T13:42:00Z",
+      "payload": {
+        "version": "2026.09.20.3",
+        "commit_sha": "a1b2c3d4e5f6"
+      }
+    },
+    {
+      "evidence_id": "evd_9409729f1bc19ef7",
+      "kind": "retrieved_guidance",
+      "source": "knowledge.runbooks",
+      "summary": "Runbook rb_payments_5xx_after_deploy recommends a simulated rollback.",
+      "observed_at": "2026-09-20T14:04:00Z",
+      "payload": {
+        "document_id": "rb_payments_5xx_after_deploy",
+        "version": 3
+      }
+    }
+  ],
+  "deployments": [
+    {
+      "service": "payments-api",
+      "version": "2026.09.20.3",
+      "commit_sha": "a1b2c3d4e5f67890abcd",
+      "deployed_at": "2026-09-20T13:42:00Z",
+      "change_summary": "Changed timeout and retry policy"
+    },
+    {
+      "service": "payments-api",
+      "version": "2026.09.20.2",
+      "commit_sha": "0099aabbccddeeff0011",
+      "deployed_at": "2026-09-20T11:00:00Z",
+      "change_summary": "Baseline release"
+    }
+  ],
+  "expected_diagnosis": {
+    "summary": "5xx and latency rose in lockstep with payments-api 2026.09.20.3.",
+    "probable_cause": "Deployment regression: timeout/retry change causing UPSTREAM_TIMEOUT.",
+    "confidence": 0.91,
+    "evidence": [
+      {
+        "evidence_id": "evd_15011954018452f6",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "HTTP 5xx rate increased immediately after the latest payments-api deploy.",
+        "observed_at": "2026-09-20T14:02:00Z",
+        "payload": {
+          "metric": "5xx_rate",
+          "before": 0.2,
+          "after": 8.4,
+          "unit": "Percent"
+        }
+      },
+      {
+        "evidence_id": "evd_80a3b6696be0dab5",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "Latency p95 rose from 180ms to 2100ms in the same window.",
+        "observed_at": "2026-09-20T14:02:15Z",
+        "payload": {
+          "metric": "latency_p95",
+          "before_ms": 180,
+          "after_ms": 2100
+        }
+      },
+      {
+        "evidence_id": "evd_0a2d045df3f135aa",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.logs",
+        "summary": "Error logs show repeated UPSTREAM_TIMEOUT from the payments client.",
+        "observed_at": "2026-09-20T14:03:00Z",
+        "payload": {
+          "error_code": "UPSTREAM_TIMEOUT",
+          "count": 47
+        }
+      },
+      {
+        "evidence_id": "evd_0736c46fd6c615b8",
+        "kind": "observed_evidence",
+        "source": "deployments",
+        "summary": "Version 2026.09.20.3 shipped 18 minutes before the alarm.",
+        "observed_at": "2026-09-20T13:42:00Z",
+        "payload": {
+          "version": "2026.09.20.3",
+          "commit_sha": "a1b2c3d4e5f6"
+        }
+      },
+      {
+        "evidence_id": "evd_9409729f1bc19ef7",
+        "kind": "retrieved_guidance",
+        "source": "knowledge.runbooks",
+        "summary": "Runbook rb_payments_5xx_after_deploy recommends a simulated rollback.",
+        "observed_at": "2026-09-20T14:04:00Z",
+        "payload": {
+          "document_id": "rb_payments_5xx_after_deploy",
+          "version": 3
+        }
+      }
+    ],
+    "retrieved_sources": [
+      "rb_payments_5xx_after_deploy"
+    ],
+    "alternative_hypotheses": [
+      "Regional dependency outage"
+    ],
+    "recommended_action": "Simulated rollback of payments-api to 2026.09.20.2",
+    "requires_approval": true,
+    "destructive": false
+  },
+  "telemetry": {
+    "logs": [
+      {
+        "timestamp": "2026-09-20T14:01:05Z",
+        "service": "payments-api",
+        "level": "ERROR",
+        "message": "UPSTREAM_TIMEOUT calling billing-api",
+        "fields": {
+          "error_code": "UPSTREAM_TIMEOUT",
+          "upstream": "billing-api"
+        }
+      },
+      {
+        "timestamp": "2026-09-20T14:01:20Z",
+        "service": "payments-api",
+        "level": "ERROR",
+        "message": "UPSTREAM_TIMEOUT calling billing-api",
+        "fields": {
+          "error_code": "UPSTREAM_TIMEOUT",
+          "upstream": "billing-api"
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "payments-api",
+        "name": "5xx_rate",
+        "value": 8.4,
+        "unit": "Percent"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "payments-api",
+        "name": "latency_p95",
+        "value": 2100.0,
+        "unit": "Milliseconds"
+      }
+    ]
+  },
+  "approval": null
+}

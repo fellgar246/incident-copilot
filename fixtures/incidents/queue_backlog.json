@@ -1,0 +1,245 @@
+{
+  "scenario": "queue_backlog",
+  "seed": "golden",
+  "incident": {
+    "incident_id": "inc_535e772f1096df49",
+    "service": "notifications-worker",
+    "severity": "MEDIUM",
+    "status": "DETECTED",
+    "alarm_name": "notifications-oldest-message-age",
+    "started_at": "2026-09-20T14:00:00Z",
+    "updated_at": "2026-09-20T14:00:00Z",
+    "correlation_id": "cor_84e0d6e6d9348e5f",
+    "diagnosis": null,
+    "confidence": null,
+    "recommended_action": null,
+    "approval_status": null,
+    "agent_run_id": null,
+    "estimated_ai_cost_usd": 0.0,
+    "simulation_id": "sim_319b543bf6b97d2a",
+    "source_event_id": "evt_1388f45932bf0e19",
+    "active_remediation_id": null,
+    "approval_id": null
+  },
+  "events": [
+    {
+      "event_id": "evt_1388f45932bf0e19",
+      "incident_id": "inc_535e772f1096df49",
+      "event_type": "ALARM_RECEIVED",
+      "timestamp": "2026-09-20T14:00:00Z",
+      "actor": "system",
+      "payload": {
+        "alarm_name": "notifications-oldest-message-age",
+        "scenario": "queue_backlog",
+        "schema_version": "1"
+      },
+      "from_status": null,
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_0d04ae75e028ae8d",
+      "incident_id": "inc_535e772f1096df49",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:01:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_efe57f4821603186",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_c524befb0d64249b",
+      "incident_id": "inc_535e772f1096df49",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:01:20Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_bbf8deb261c92897",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_1769c964da3dbcff",
+      "incident_id": "inc_535e772f1096df49",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:02:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_ab379b356222d1b7",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_8ecb5f88ec477e06",
+      "incident_id": "inc_535e772f1096df49",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:03:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_6268f65f309808a7",
+        "kind": "retrieved_guidance"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evd_efe57f4821603186",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "Visible SQS messages grew from 12 to 840 in 20 minutes.",
+      "observed_at": "2026-09-20T14:01:00Z",
+      "payload": {
+        "metric": "ApproximateNumberOfMessagesVisible",
+        "before": 12,
+        "after": 840
+      }
+    },
+    {
+      "evidence_id": "evd_bbf8deb261c92897",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "Age of oldest message exceeded 15 minutes.",
+      "observed_at": "2026-09-20T14:01:20Z",
+      "payload": {
+        "metric": "ApproximateAgeOfOldestMessage",
+        "seconds": 960
+      }
+    },
+    {
+      "evidence_id": "evd_ab379b356222d1b7",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "Worker duration p95 doubled, pointing at a consumer bottleneck.",
+      "observed_at": "2026-09-20T14:02:00Z",
+      "payload": {
+        "metric": "worker_duration_p95_ms",
+        "value": 4200
+      }
+    },
+    {
+      "evidence_id": "evd_6268f65f309808a7",
+      "kind": "retrieved_guidance",
+      "source": "knowledge.runbooks",
+      "summary": "Runbook rb_notifications_sqs_backlog suggests a safe concurrency bump in demo.",
+      "observed_at": "2026-09-20T14:03:00Z",
+      "payload": {
+        "document_id": "rb_notifications_sqs_backlog"
+      }
+    }
+  ],
+  "deployments": [
+    {
+      "service": "notifications-worker",
+      "version": "2026.09.19.4",
+      "commit_sha": "c0ffeeabc123def45678",
+      "deployed_at": "2026-09-20T02:00:00Z",
+      "change_summary": "Worker batch size left at 1"
+    }
+  ],
+  "expected_diagnosis": {
+    "summary": "Queue depth and oldest-message age show a consumer bottleneck.",
+    "probable_cause": "notifications-worker cannot keep up with enqueue rate.",
+    "confidence": 0.86,
+    "evidence": [
+      {
+        "evidence_id": "evd_efe57f4821603186",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "Visible SQS messages grew from 12 to 840 in 20 minutes.",
+        "observed_at": "2026-09-20T14:01:00Z",
+        "payload": {
+          "metric": "ApproximateNumberOfMessagesVisible",
+          "before": 12,
+          "after": 840
+        }
+      },
+      {
+        "evidence_id": "evd_bbf8deb261c92897",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "Age of oldest message exceeded 15 minutes.",
+        "observed_at": "2026-09-20T14:01:20Z",
+        "payload": {
+          "metric": "ApproximateAgeOfOldestMessage",
+          "seconds": 960
+        }
+      },
+      {
+        "evidence_id": "evd_ab379b356222d1b7",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "Worker duration p95 doubled, pointing at a consumer bottleneck.",
+        "observed_at": "2026-09-20T14:02:00Z",
+        "payload": {
+          "metric": "worker_duration_p95_ms",
+          "value": 4200
+        }
+      },
+      {
+        "evidence_id": "evd_6268f65f309808a7",
+        "kind": "retrieved_guidance",
+        "source": "knowledge.runbooks",
+        "summary": "Runbook rb_notifications_sqs_backlog suggests a safe concurrency bump in demo.",
+        "observed_at": "2026-09-20T14:03:00Z",
+        "payload": {
+          "document_id": "rb_notifications_sqs_backlog"
+        }
+      }
+    ],
+    "retrieved_sources": [
+      "rb_notifications_sqs_backlog"
+    ],
+    "alternative_hypotheses": [
+      "Producer retry storm"
+    ],
+    "recommended_action": "Increase demo worker concurrency by 1 after approval",
+    "requires_approval": true,
+    "destructive": false
+  },
+  "telemetry": {
+    "logs": [
+      {
+        "timestamp": "2026-09-20T14:02:00Z",
+        "service": "notifications-worker",
+        "level": "WARN",
+        "message": "processing lag increasing",
+        "fields": {
+          "queue": "notifications",
+          "visible": 840
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "notifications-worker",
+        "name": "ApproximateNumberOfMessagesVisible",
+        "value": 840.0,
+        "unit": "Count"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "notifications-worker",
+        "name": "ApproximateAgeOfOldestMessage",
+        "value": 960.0,
+        "unit": "Seconds"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "notifications-worker",
+        "name": "worker_duration_p95",
+        "value": 4200.0,
+        "unit": "Milliseconds"
+      }
+    ]
+  },
+  "approval": null
+}

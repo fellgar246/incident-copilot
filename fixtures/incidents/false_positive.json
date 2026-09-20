@@ -1,0 +1,207 @@
+{
+  "scenario": "false_positive",
+  "seed": "golden",
+  "incident": {
+    "incident_id": "inc_8eccc29ca46ea422",
+    "service": "payments-api",
+    "severity": "LOW",
+    "status": "DETECTED",
+    "alarm_name": "payments-cpu-brief-spike",
+    "started_at": "2026-09-20T14:00:00Z",
+    "updated_at": "2026-09-20T14:00:00Z",
+    "correlation_id": "cor_fb111246f16cc9a8",
+    "diagnosis": null,
+    "confidence": null,
+    "recommended_action": null,
+    "approval_status": null,
+    "agent_run_id": null,
+    "estimated_ai_cost_usd": 0.0,
+    "simulation_id": "sim_383814bb7f480aa2",
+    "source_event_id": "evt_73c9cdc321fc5819",
+    "active_remediation_id": null,
+    "approval_id": null
+  },
+  "events": [
+    {
+      "event_id": "evt_73c9cdc321fc5819",
+      "incident_id": "inc_8eccc29ca46ea422",
+      "event_type": "ALARM_RECEIVED",
+      "timestamp": "2026-09-20T14:00:00Z",
+      "actor": "system",
+      "payload": {
+        "alarm_name": "payments-cpu-brief-spike",
+        "scenario": "false_positive",
+        "schema_version": "1"
+      },
+      "from_status": null,
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_a10d595b1a462a4b",
+      "incident_id": "inc_8eccc29ca46ea422",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:01:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_ffa5c2fbbbb948d5",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_d32bb960aaa65111",
+      "incident_id": "inc_8eccc29ca46ea422",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:02:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_4d77ce541a92d919",
+        "kind": "observed_evidence"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    },
+    {
+      "event_id": "evt_5c72cfc4a7a84440",
+      "incident_id": "inc_8eccc29ca46ea422",
+      "event_type": "EVIDENCE_ADDED",
+      "timestamp": "2026-09-20T14:03:00Z",
+      "actor": "system",
+      "payload": {
+        "evidence_id": "evd_f44a58048eeae8ec",
+        "kind": "inference"
+      },
+      "from_status": "DETECTED",
+      "to_status": "DETECTED"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "evd_ffa5c2fbbbb948d5",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.metrics",
+      "summary": "CPU spiked for 90 seconds then returned to baseline; error rate unchanged.",
+      "observed_at": "2026-09-20T14:01:00Z",
+      "payload": {
+        "cpu_percent_peak": 71,
+        "5xx_rate": 0.1,
+        "duration_seconds": 90
+      }
+    },
+    {
+      "evidence_id": "evd_4d77ce541a92d919",
+      "kind": "observed_evidence",
+      "source": "cloudwatch.logs",
+      "summary": "No matching error burst; recent INFO logs only.",
+      "observed_at": "2026-09-20T14:02:00Z",
+      "payload": {
+        "error_count": 0,
+        "info_count": 24
+      }
+    },
+    {
+      "evidence_id": "evd_f44a58048eeae8ec",
+      "kind": "inference",
+      "source": "agent.hypothesis",
+      "summary": "Latency and 5xx contradict a genuine outage; more evidence is required.",
+      "observed_at": "2026-09-20T14:03:00Z",
+      "payload": {
+        "confidence_cap": 0.35
+      }
+    }
+  ],
+  "deployments": [
+    {
+      "service": "payments-api",
+      "version": "2026.09.20.2",
+      "commit_sha": "0099aabbccddeeff0011",
+      "deployed_at": "2026-09-20T11:00:00Z",
+      "change_summary": "Baseline release, no overlap with the brief CPU blip"
+    }
+  ],
+  "expected_diagnosis": {
+    "summary": "Symptoms are brief and contradictory; there is not enough evidence for a fix.",
+    "probable_cause": "Likely false positive from a transient CPU blip.",
+    "confidence": 0.28,
+    "evidence": [
+      {
+        "evidence_id": "evd_ffa5c2fbbbb948d5",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.metrics",
+        "summary": "CPU spiked for 90 seconds then returned to baseline; error rate unchanged.",
+        "observed_at": "2026-09-20T14:01:00Z",
+        "payload": {
+          "cpu_percent_peak": 71,
+          "5xx_rate": 0.1,
+          "duration_seconds": 90
+        }
+      },
+      {
+        "evidence_id": "evd_4d77ce541a92d919",
+        "kind": "observed_evidence",
+        "source": "cloudwatch.logs",
+        "summary": "No matching error burst; recent INFO logs only.",
+        "observed_at": "2026-09-20T14:02:00Z",
+        "payload": {
+          "error_count": 0,
+          "info_count": 24
+        }
+      },
+      {
+        "evidence_id": "evd_f44a58048eeae8ec",
+        "kind": "inference",
+        "source": "agent.hypothesis",
+        "summary": "Latency and 5xx contradict a genuine outage; more evidence is required.",
+        "observed_at": "2026-09-20T14:03:00Z",
+        "payload": {
+          "confidence_cap": 0.35
+        }
+      }
+    ],
+    "retrieved_sources": [],
+    "alternative_hypotheses": [
+      "Hidden error burst not yet in the log window"
+    ],
+    "recommended_action": "Collect more evidence; do not remediate",
+    "requires_approval": false,
+    "destructive": false
+  },
+  "telemetry": {
+    "logs": [
+      {
+        "timestamp": "2026-09-20T14:01:00Z",
+        "service": "payments-api",
+        "level": "INFO",
+        "message": "gc pause recovered",
+        "fields": {
+          "duration_ms": 40
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "payments-api",
+        "name": "cpu_percent",
+        "value": 71.0,
+        "unit": "Percent"
+      },
+      {
+        "timestamp": "2026-09-20T14:02:00Z",
+        "service": "payments-api",
+        "name": "cpu_percent",
+        "value": 18.0,
+        "unit": "Percent"
+      },
+      {
+        "timestamp": "2026-09-20T14:00:00Z",
+        "service": "payments-api",
+        "name": "5xx_rate",
+        "value": 0.1,
+        "unit": "Percent"
+      }
+    ]
+  },
+  "approval": null
+}
