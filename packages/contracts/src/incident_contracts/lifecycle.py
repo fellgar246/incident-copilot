@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from incident_contracts.actors import validate_actor
 from incident_contracts.enums import EventType, IncidentStatus
 from incident_contracts.errors import IllegalTransitionError
 from incident_contracts.models import Incident, IncidentEvent
@@ -14,9 +15,7 @@ ALLOWED_TRANSITIONS: dict[IncidentStatus, frozenset[IncidentStatus]] = {
     IncidentStatus.INVESTIGATING: frozenset({IncidentStatus.DIAGNOSED}),
     IncidentStatus.DIAGNOSED: frozenset({IncidentStatus.REMEDIATION_PROPOSED}),
     IncidentStatus.REMEDIATION_PROPOSED: frozenset({IncidentStatus.AWAITING_APPROVAL}),
-    IncidentStatus.AWAITING_APPROVAL: frozenset(
-        {IncidentStatus.APPROVED, IncidentStatus.REJECTED}
-    ),
+    IncidentStatus.AWAITING_APPROVAL: frozenset({IncidentStatus.APPROVED, IncidentStatus.REJECTED}),
     IncidentStatus.APPROVED: frozenset({IncidentStatus.REMEDIATING}),
     IncidentStatus.REMEDIATING: frozenset({IncidentStatus.RESOLVED, IncidentStatus.FAILED}),
     IncidentStatus.REJECTED: frozenset(),
@@ -49,6 +48,7 @@ def transition(
     event_type: EventType | None = None,
 ) -> tuple[Incident, IncidentEvent]:
     """Apply a legal status change and return the updated incident plus audit event."""
+    validate_actor(actor)
     allowed = ALLOWED_TRANSITIONS[incident.status]
     if target not in allowed:
         raise IllegalTransitionError(

@@ -1,5 +1,6 @@
 """Shared domain contracts for incidents, events, the lifecycle, and product surface."""
 
+from incident_contracts.actors import format_actor, parse_actor, validate_actor
 from incident_contracts.agent_context import AgentRunContext
 from incident_contracts.api_models import (
     ApproveIncidentRequest,
@@ -22,6 +23,7 @@ from incident_contracts.errors import (
     DuplicateRemediationError,
     IllegalTransitionError,
     IncidentNotFoundError,
+    InvalidActorError,
     InvalidApprovalError,
 )
 from incident_contracts.keys import event_sk, incident_pk, parse_event_sk, parse_incident_pk
@@ -87,6 +89,7 @@ __all__ = [
     "IncidentRepository",
     "IncidentService",
     "IncidentStatus",
+    "InvalidActorError",
     "InvalidApprovalError",
     "LogSample",
     "MetricSample",
@@ -98,9 +101,12 @@ __all__ = [
     "TelemetryBundle",
     "ToolClass",
     "event_sk",
+    "format_actor",
     "incident_pk",
     "mutating_operations",
+    "parse_actor",
     "parse_event_sk",
     "parse_incident_pk",
     "transition",
+    "validate_actor",
 ]

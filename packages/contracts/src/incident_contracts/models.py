@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from incident_contracts.actors import validate_actor
 from incident_contracts.enums import (
     ApprovalStatus,
     EventType,
@@ -52,6 +53,11 @@ class Approval(BaseModel):
     created_at: datetime
     expires_at: datetime
     decided_at: datetime | None = None
+
+    @field_validator("actor")
+    @classmethod
+    def _require_known_actor(cls, value: str) -> str:
+        return validate_actor(value)
 
 
 class Deployment(BaseModel):
@@ -102,6 +108,11 @@ class IncidentEvent(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     from_status: IncidentStatus | None = None
     to_status: IncidentStatus | None = None
+
+    @field_validator("actor")
+    @classmethod
+    def _require_known_actor(cls, value: str) -> str:
+        return validate_actor(value)
 
 
 class Incident(BaseModel):

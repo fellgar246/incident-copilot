@@ -142,3 +142,80 @@ def test_cannot_skip_states() -> None:
             agent_run_id="run_1",
             correlation_id="cor_1",
         )
+
+
+def test_replay_event_id_does_not_append_second_event() -> None:
+    service = _service()
+    incident, event = _new_incident()
+    service.ingest(incident, event)
+    first = service.queue("inc_1", actor="system", at=NOW, event_id="evt_q")
+    second = service.queue("inc_1", actor="system", at=NOW, event_id="evt_q")
+    assert first.status is second.status is IncidentStatus.QUEUED
+    matching = [item for item in service.events("inc_1") if item.event_id == "evt_q"]
+    assert len(matching) == 1
+
+
+def _approve(service: IncidentService) -> None:
+    incident, event = _new_incident()
+    service.ingest(incident, event)
+    service.queue("inc_1", actor="system", at=NOW, event_id="evt_q")
+    service.start_investigation(
+        "inc_1",
+        actor="agent",
+        at=NOW,
+        event_id="evt_inv",
+        agent_run_id="run_1",
+        correlation_id="cor_1",
+    )
+    diagnosis = Diagnosis(
+        summary="regression",
+        probable_cause="deploy",
+        confidence=0.9,
+        recommended_action="rollback",
+        requires_approval=True,
+    )
+    service.record_diagnosis("inc_1", diagnosis, actor="agent", at=NOW, event_id="evt_dx")
+    service.propose_remediation(
+        "inc_1", actor="agent", at=NOW, event_id="evt_pr", action="rollback"
+    )
+    approval = Approval(
+        approval_id="appr_1",
+        incident_id="inc_1",
+        status="PENDING",
+        actor="human:ada",
+        created_at=NOW,
+        expires_at=NOW + timedelta(hours=1),
+    )
+    service.request_approval("inc_1", approval, actor="agent", at=NOW, event_id="evt_appr")
+    service.approve(
+        "inc_1",
+        actor="human:ada",
+        at=NOW,
+        event_id="evt_ok",
+        approval_id="appr_1",
+        expires_at=approval.expires_at,
+    )
+
+
+def test_replay_start_remediation_same_event_id_is_idempotent() -> None:
+    service = _service()
+    _approve(service)
+    first = service.start_remediation(
+        "inc_1",
+        actor="system",
+        at=NOW,
+        event_id="evt_rem",
+        remediation_id="rem_1",
+        approval_id="appr_1",
+    )
+    second = service.start_remediation(
+        "inc_1",
+        actor="system",
+        at=NOW,
+        event_id="evt_rem",
+        remediation_id="rem_1",
+        approval_id="appr_1",
+    )
+    assert first.active_remediation_id == second.active_remediation_id == "rem_1"
+    remediations = [item for item in service.events("inc_1") if item.event_id == "evt_rem"]
+    assert len(remediations) == 1

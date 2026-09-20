@@ -15,6 +15,8 @@ class IncidentRepository(Protocol):
 
     def get_by_simulation_id(self, simulation_id: str) -> Incident | None: ...
 
+    def get_by_event_id(self, event_id: str) -> Incident | None: ...
+
     def save(self, incident: Incident) -> None: ...
 
     def append_event(self, event: IncidentEvent) -> None: ...
@@ -48,6 +50,12 @@ class InMemoryIncidentRepository:
 
     def get_by_simulation_id(self, simulation_id: str) -> Incident | None:
         incident_id = self._simulation_index.get(simulation_id)
+        if incident_id is None:
+            return None
+        return self.get(incident_id)
+
+    def get_by_event_id(self, event_id: str) -> Incident | None:
+        incident_id = self._appended_event_ids.get(event_id)
         if incident_id is None:
             return None
         return self.get(incident_id)

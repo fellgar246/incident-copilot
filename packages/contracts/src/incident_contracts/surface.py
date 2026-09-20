@@ -218,11 +218,9 @@ REPOSITORY_LAYOUT: tuple[str, ...] = (
     "infra/modules",
     "infra/environments/dev",
     "scripts",
-    "specs",
     ".github/workflows",
     "Makefile",
     "README.md",
-    "AI-Incident-Copilot-Master-Plan.md",
 )
 
 

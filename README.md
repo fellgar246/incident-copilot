@@ -34,7 +34,6 @@ docs/                    architecture, ADRs, runbooks, postmortems, services
 evals/                   quality gates (placeholder)
 fixtures/incidents/      golden simulator snapshots
 infra/                   Terraform modules + environments/dev
-specs/                   Spec-driven development package
 ```
 
 ## Prerequisites

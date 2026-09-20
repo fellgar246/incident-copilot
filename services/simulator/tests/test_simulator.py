@@ -55,6 +55,17 @@ def test_pool_scenario_does_not_blame_cpu() -> None:
     assert "pool" in fixture.expected_diagnosis.probable_cause.lower()
 
 
+def test_queue_backlog_points_at_consumer() -> None:
+    fixture = simulate(ScenarioId.QUEUE_BACKLOG, seed="golden")
+    blob = fixture.model_dump_json()
+    assert "ApproximateNumberOfMessagesVisible" in blob
+    assert "ApproximateAgeOfOldestMessage" in blob
+    assert "consumer bottleneck" in fixture.expected_diagnosis.summary.lower()
+    assert fixture.incident.service == "notifications-worker"
+    assert fixture.expected_diagnosis.destructive is False
+    assert "concurrency" in fixture.expected_diagnosis.recommended_action.lower()
+
+
 def test_false_positive_is_not_destructive() -> None:
     fixture = simulate(ScenarioId.FALSE_POSITIVE, seed="golden")
     action = fixture.expected_diagnosis.recommended_action.lower()
@@ -74,16 +85,21 @@ def test_different_seeds_change_ids() -> None:
 def test_fixture_ingests_idempotently_in_memory() -> None:
     fixture = simulate(ScenarioId.DEPLOYMENT_REGRESSION, seed="golden")
     service = IncidentService(InMemoryIncidentRepository())
-    alarm = fixture.events[0]
-    first = service.ingest(fixture.incident, alarm)
-    second = service.ingest(fixture.incident, alarm)
+    first = service.ingest_fixture(fixture)
+    second = service.ingest_fixture(fixture)
     queued = service.queue(
         first.incident_id,
         actor="system",
         at=fixture.incident.started_at,
-        event_id=f"{alarm.event_id}-queued",
+        event_id=f"{fixture.events[0].event_id}-queued",
     )
     assert first.incident_id == second.incident_id
     assert len(service.list_incidents()) == 1
     assert queued.status.value == "QUEUED"
-    assert service.events(first.incident_id)[0].event_type.value == "ALARM_RECEIVED"
+    events = service.events(first.incident_id)
+    event_ids = {item.event_id for item in events}
+    expected_ids = {item.event_id for item in fixture.events}
+    expected_ids.add(f"{fixture.events[0].event_id}-queued")
+    assert event_ids == expected_ids
+    assert any(item.event_type.value == "ALARM_RECEIVED" for item in events)
+    assert any(item.event_type.value == "EVIDENCE_ADDED" for item in events)

@@ -21,3 +21,7 @@ class DuplicateRemediationError(DomainError):
 
 class InvalidApprovalError(DomainError):
     """Raised when approval is missing, mismatched, or expired."""
+
+
+class InvalidActorError(DomainError):
+    """Raised when an event actor is not system, agent, or human:{id}."""

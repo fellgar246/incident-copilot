@@ -93,6 +93,21 @@ Fields: `incident_id`, `service`, `severity`, `status`, `alarm_name`, `started_a
 
 Required types: `ALARM_RECEIVED`, `INVESTIGATION_STARTED`, `TOOL_CALLED`, `EVIDENCE_ADDED`, `DIAGNOSIS_CREATED`, `APPROVAL_REQUESTED`, `APPROVAL_GRANTED`, `REMEDIATION_EXECUTED`, `INCIDENT_RESOLVED`.
 
+**diagnosis** — produced by the agent in a later slice; the local simulator already emits the expected shape:
+
+```json
+{
+  "summary": "...",
+  "probable_cause": "...",
+  "confidence": 0.0,
+  "evidence": [],
+  "retrieved_sources": [],
+  "alternative_hypotheses": [],
+  "recommended_action": "...",
+  "requires_approval": true
+}
+```
+
 **deployments** — release metadata used to correlate incidents without standing up CodeDeploy/ECS for the demo.
 
 ## HTTP API

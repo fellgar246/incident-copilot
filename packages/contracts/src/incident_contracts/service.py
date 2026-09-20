@@ -4,23 +4,15 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from incident_contracts.enums import ActorKind, ApprovalStatus, EventType, IncidentStatus
+from incident_contracts.enums import ApprovalStatus, EventType, IncidentStatus
 from incident_contracts.errors import (
     DuplicateRemediationError,
     IncidentNotFoundError,
     InvalidApprovalError,
 )
 from incident_contracts.lifecycle import transition
-from incident_contracts.models import Approval, Diagnosis, Incident, IncidentEvent
+from incident_contracts.models import Approval, Diagnosis, Incident, IncidentEvent, IncidentFixture
 from incident_contracts.repository import IncidentRepository
-
-
-def format_actor(kind: ActorKind, human_id: str | None = None) -> str:
-    if kind is ActorKind.HUMAN:
-        if not human_id:
-            raise ValueError("human actor requires human_id")
-        return f"human:{human_id}"
-    return kind.value
 
 
 class IncidentService:
@@ -38,15 +30,22 @@ class IncidentService:
             existing = self._repo.get_by_source_event_id(incident.source_event_id)
         if existing is None and incident.simulation_id:
             existing = self._repo.get_by_simulation_id(incident.simulation_id)
+        if existing is None:
+            existing = self._repo.get_by_event_id(alarm_event.event_id)
         if existing is not None:
             return existing
-        if self._repo.event_exists(alarm_event.event_id):
-            found = self._repo.get_by_source_event_id(alarm_event.event_id)
-            if found is not None:
-                return found
         self._repo.save(incident)
         self._repo.append_event(alarm_event)
         return incident.model_copy(deep=True)
+
+    def ingest_fixture(self, fixture: IncidentFixture) -> Incident:
+        """Load a simulated incident and its events without duplicating event_id rows."""
+        if not fixture.events:
+            raise ValueError("fixture has no events")
+        incident = self.ingest(fixture.incident, fixture.events[0])
+        for event in fixture.events[1:]:
+            self._repo.append_event(event)
+        return incident
 
     def get(self, incident_id: str) -> Incident:
         incident = self._repo.get(incident_id)
@@ -225,6 +224,8 @@ class IncidentService:
         remediation_id: str,
         approval_id: str,
     ) -> Incident:
+        if self._repo.event_exists(event_id):
+            return self.get(incident_id)
         incident = self.get(incident_id)
         if incident.active_remediation_id is not None:
             raise DuplicateRemediationError(
