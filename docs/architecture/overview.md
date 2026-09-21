@@ -130,7 +130,7 @@ GET    /metrics/costs
 GET    /evaluations
 ```
 
-HTTP handlers are not part of this contract slice. The catalog lives in `packages/contracts` so later slices cannot drift.
+HTTP handlers for health, incident list/detail/events, and simulate live in `apps/api`. Remaining catalog routes currently return 501. Mutable simulate calls require `Idempotency-Key` or reuse `simulation_id`; a matching replay returns 200 with the existing incident.
 
 ## Dashboard
 

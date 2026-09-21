@@ -26,7 +26,20 @@ from incident_contracts.errors import (
     InvalidActorError,
     InvalidApprovalError,
 )
-from incident_contracts.keys import event_sk, incident_pk, parse_event_sk, parse_incident_pk
+from incident_contracts.keys import (
+    INDEX_SK,
+    METADATA_SK,
+    deployment_pk,
+    deployment_sk,
+    event_id_pk,
+    event_sk,
+    idempotency_pk,
+    incident_pk,
+    parse_event_sk,
+    parse_incident_pk,
+    simulation_pk,
+    source_event_pk,
+)
 from incident_contracts.lifecycle import ALLOWED_TRANSITIONS, transition
 from incident_contracts.models import (
     Approval,
@@ -64,7 +77,9 @@ __all__ = [
     "DEMO_SCRIPT_STEPS",
     "DEMO_SERVICES",
     "INCIDENT_DETAIL_SECTIONS",
+    "INDEX_SK",
     "INVESTIGATION_TOOLS",
+    "METADATA_SK",
     "REQUIRED_AUDIT_EVENT_TYPES",
     "ActorKind",
     "AgentRunContext",
@@ -100,13 +115,19 @@ __all__ = [
     "SimulateIncidentRequest",
     "TelemetryBundle",
     "ToolClass",
+    "deployment_pk",
+    "deployment_sk",
+    "event_id_pk",
     "event_sk",
     "format_actor",
+    "idempotency_pk",
     "incident_pk",
     "mutating_operations",
     "parse_actor",
     "parse_event_sk",
     "parse_incident_pk",
+    "simulation_pk",
+    "source_event_pk",
     "transition",
     "validate_actor",
 ]

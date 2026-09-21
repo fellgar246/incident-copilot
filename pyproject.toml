@@ -11,9 +11,11 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
   "mypy>=1.11",
-  "pydantic>=2.9",
-  "pytest>=8.3",
-  "ruff>=0.6",
+    "pydantic>=2.9",
+    "pytest>=8.3",
+    "ruff>=0.6",
+    "httpx>=0.27",
+    "moto[dynamodb]>=5.0",
 ]
 
 [build-system]
@@ -43,6 +45,7 @@ pythonpath = [
   "packages/contracts/src",
   "packages/observability/src",
   "services/simulator/src",
+  "apps/api/src",
 ]
 addopts = "-q --strict-markers"
 
@@ -54,6 +57,7 @@ mypy_path = [
   "packages/contracts/src",
   "packages/observability/src",
   "services/simulator/src",
+  "apps/api/src",
 ]
 exclude = [
   "(^|/)tests/",

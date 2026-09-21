@@ -20,7 +20,7 @@ The product also has to be demoable without AWS Console. An interviewer should s
 6. **Demo services.** `payments-api`, `orders-api`, `notifications-worker`. Primary script: `deployment_regression`.
 7. **No generic AWS access for the agent.** Investigation tools are `query_logs`, `query_metrics`, `get_recent_deployments`, and `search_runbooks`.
 
-This ADR does not implement HTTP, AWS resources, or UI. Later slices fill those in against this contract. Changing the API, states, or topology requires an ADR amendment.
+This ADR does not change the HTTP catalog or lifecycle. Persistence and handler details are in ADR-003.
 
 ## Cost impact
 

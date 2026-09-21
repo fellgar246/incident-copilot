@@ -56,8 +56,13 @@ class IncidentService:
     def events(self, incident_id: str) -> list[IncidentEvent]:
         return self._repo.list_events(incident_id)
 
-    def list_incidents(self) -> list[Incident]:
-        return self._repo.list_incidents()
+    def list_incidents(
+        self,
+        *,
+        status: IncidentStatus | None = None,
+        service: str | None = None,
+    ) -> list[Incident]:
+        return self._repo.list_incidents(status=status, service=service)
 
     def queue(self, incident_id: str, *, actor: str, at: datetime, event_id: str) -> Incident:
         return self._transition(

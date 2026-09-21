@@ -19,6 +19,30 @@ module "iam" {
   github_repo        = var.github_repo
 }
 
+module "dynamodb" {
+  source = "../../modules/dynamodb"
+
+  project            = var.project
+  environment        = var.environment
+  log_retention_days = var.log_retention_days
+}
+
+module "api" {
+  source = "../../modules/api"
+
+  project                = var.project
+  environment            = var.environment
+  aws_region             = var.aws_region
+  lambda_source_dir      = abspath("${path.module}/../../../apps/api/src")
+  incidents_table_name   = module.dynamodb.incidents_table_name
+  incidents_table_arn    = module.dynamodb.incidents_table_arn
+  deployments_table_name = module.dynamodb.deployments_table_name
+  deployments_table_arn  = module.dynamodb.deployments_table_arn
+  log_retention_days     = var.log_retention_days
+  ai_enabled             = var.ai_enabled
+  max_incidents_per_day  = var.max_incidents_per_day
+}
+
 output "aws_region" {
   value = var.aws_region
 }
@@ -57,4 +81,20 @@ output "github_oidc_provider_arn" {
 
 output "ci_deploy_role_arn" {
   value = module.iam.ci_deploy_role_arn
+}
+
+output "incidents_table_name" {
+  value = module.dynamodb.incidents_table_name
+}
+
+output "deployments_table_name" {
+  value = module.dynamodb.deployments_table_name
+}
+
+output "api_endpoint" {
+  value = module.api.api_endpoint
+}
+
+output "api_role_arn" {
+  value = module.api.api_role_arn
 }

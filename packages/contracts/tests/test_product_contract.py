@@ -12,7 +12,18 @@ from incident_contracts.api_models import (
     SimulateIncidentRequest,
 )
 from incident_contracts.enums import EventType, IncidentStatus, ScenarioId
-from incident_contracts.keys import event_sk, incident_pk, parse_event_sk, parse_incident_pk
+from incident_contracts.keys import (
+    METADATA_SK,
+    deployment_pk,
+    event_id_pk,
+    event_sk,
+    idempotency_pk,
+    incident_pk,
+    parse_event_sk,
+    parse_incident_pk,
+    simulation_pk,
+    source_event_pk,
+)
 from incident_contracts.models import Deployment, Incident
 from incident_contracts.surface import (
     API_OPERATIONS,
@@ -187,6 +198,13 @@ def test_persistence_keys_round_trip_and_sort() -> None:
     with pytest.raises(ValueError, match="prefix"):
         incident_pk("INCIDENT#inc_dup")
 
+    assert source_event_pk("evt_1") == "SOURCE#evt_1"
+    assert simulation_pk("sim_1") == "SIMULATION#sim_1"
+    assert event_id_pk("evt_1") == "EVENTID#evt_1"
+    assert idempotency_pk("k") == "IDEM#k"
+    assert deployment_pk("payments-api") == "SERVICE#payments-api"
+    assert METADATA_SK == "METADATA"
+
 
 def test_agent_run_context_requires_both_ids() -> None:
     ctx = AgentRunContext(
@@ -200,8 +218,10 @@ def test_agent_run_context_requires_both_ids() -> None:
 
 
 def test_http_request_models_reject_unknown_fields() -> None:
-    simulate = SimulateIncidentRequest(scenario=ScenarioId.DEPLOYMENT_REGRESSION, seed="demo")
-    assert simulate.scenario is ScenarioId.DEPLOYMENT_REGRESSION
+    simulate = SimulateIncidentRequest(
+        scenario=ScenarioId.DEPLOYMENT_REGRESSION, seed="demo", simulation_id="sim_custom"
+    )
+    assert simulate.simulation_id == "sim_custom"
     ApproveIncidentRequest(approval_id="appr_1")
     RejectIncidentRequest(approval_id="appr_1", reason="not a regression")
     RemediateIncidentRequest(approval_id="appr_1")

@@ -3,7 +3,16 @@ name = "api"
 version = "0.1.0"
 description = "FastAPI HTTP API for incidents."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "fastapi>=0.115",
+  "mangum>=0.19",
+  "boto3>=1.35",
+  "uvicorn>=0.30",
+  "incident-contracts",
+  "observability",
+  "simulator",
+  "cost-guardrails",
+]
 
 [build-system]
 requires = ["setuptools>=75"]

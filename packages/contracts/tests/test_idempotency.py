@@ -155,6 +155,26 @@ def test_replay_event_id_does_not_append_second_event() -> None:
     assert len(matching) == 1
 
 
+def test_list_incidents_filters_by_service_and_status() -> None:
+    service = _service()
+    incident, event = _new_incident()
+    service.ingest(incident, event)
+    other_event = event.model_copy(update={"event_id": "evt_other"})
+    other = incident.model_copy(
+        update={
+            "incident_id": "inc_2",
+            "service": "orders-api",
+            "source_event_id": "evt_other",
+            "simulation_id": "sim_2",
+        }
+    )
+    service.ingest(other, other_event)
+    only_orders = service.list_incidents(service="orders-api")
+    assert [item.incident_id for item in only_orders] == ["inc_2"]
+    detected = service.list_incidents(status=IncidentStatus.DETECTED)
+    assert {item.incident_id for item in detected} == {"inc_1", "inc_2"}
+
+
 def _approve(service: IncidentService) -> None:
     incident, event = _new_incident()
     service.ingest(incident, event)

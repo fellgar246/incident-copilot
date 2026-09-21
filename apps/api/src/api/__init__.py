@@ -1,1 +1,5 @@
-"""API package placeholder. HTTP surface is added in a later slice."""
+"""HTTP API for incidents."""
+
+from api.main import app, create_app
+
+__all__ = ["app", "create_app"]

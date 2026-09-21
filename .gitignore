@@ -37,7 +37,7 @@ out/
 *.tsbuildinfo
 
 # Terraform
-.terraform/
+infra/**/build/
 *.tfstate
 *.tfstate.*
 *.tfvars

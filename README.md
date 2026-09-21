@@ -21,13 +21,13 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract plus foundation and local domain: architecture/API/data/dashboard catalogs, monorepo toolchains, application quotas, AWS Budget bootstrap, GitHub OIDC skeleton, ADR-001/002, incident state machine, and a deterministic simulator. HTTP, agent runtime, and dashboard UI land in later slices.
+Product contract, foundation, local domain, and the HTTP + DynamoDB slice: health and read-oriented incident APIs, deterministic `POST /incidents/simulate` with idempotent replays, FastAPI on Lambda via Mangum, on-demand DynamoDB (incidents/events + deployments) with TTL, and `api-role` least privilege. Investigation, EventBridge ingestion, the agent runtime, and the dashboard UI land in later slices.
 
 ## Repository layout
 
 ```text
 apps/web                 Next.js dashboard (placeholder)
-apps/api                 FastAPI (placeholder)
+apps/api                 FastAPI (health, incidents, simulate)
 services/                worker, agent, tools, simulator
 packages/                contracts, observability, cost-guardrails
 docs/                    architecture, ADRs, runbooks, postmortems, services
@@ -35,6 +35,8 @@ evals/                   quality gates (placeholder)
 fixtures/incidents/      golden simulator snapshots
 infra/                   Terraform modules + environments/dev
 ```
+
+HTTP handlers live in `apps/api`. Persistence is selected with `INCIDENT_REPOSITORY` (`memory` locally, `dynamodb` in AWS). The generated OpenAPI contract is `apps/api/openapi.json`.
 
 ## Prerequisites
 
@@ -64,6 +66,20 @@ python scripts/seed_demo.py --write-golden
 ```
 
 Four deterministic scenarios: `deployment_regression`, `connection_pool_exhaustion`, `queue_backlog`, `false_positive`. The same `--seed` always prints the same IDs, timestamps, and payloads.
+
+## Local HTTP API
+
+```bash
+source .venv/bin/activate
+make run-api
+# GET  http://127.0.0.1:8000/health
+# POST http://127.0.0.1:8000/incidents/simulate
+#      {"scenario":"deployment_regression","seed":"demo"}
+```
+
+`POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Remaining product routes respond **501** until later slices. Logs are JSON and include `request_id` / `correlation_id`; they never include bearer tokens or AWS credentials.
+
+Set `INCIDENT_REPOSITORY=dynamodb` (and table names from `terraform output`) to point the process at AWS instead of the in-memory store.
 
 ## Cost guardrails
 
@@ -130,7 +146,7 @@ remediation-tool-role
 ci-deploy-role
 ```
 
-Only `ci-deploy-role` exists in this bootstrap, and only when OIDC is enabled.
+`api-role` is the API Lambda execution role: CloudWatch logs for that function plus Get/Put/Query/Scan/Describe on the incidents and deployments tables. `ci-deploy-role` exists only when OIDC is enabled.
 
 ## Make targets
 
@@ -142,12 +158,15 @@ Only `ci-deploy-role` exists in this bootstrap, and only when OIDC is enabled.
 | `make typecheck` | mypy + `tsc --noEmit` |
 | `make test` | pytest |
 | `make terraform-validate` | `terraform init -backend=false` + validate |
+| `make run-api` | Uvicorn for `apps/api` |
+| `make openapi` | Refresh `apps/api/openapi.json` |
 | `make ci` | All of the above except fmt |
 
 ## Docs
 
 - [ADR-001 Cost and architecture guardrails](docs/adrs/ADR-001-cost-and-architecture-guardrails.md)
 - [ADR-002 Product architecture](docs/adrs/ADR-002-product-architecture.md)
+- [ADR-003 HTTP API and DynamoDB persistence](docs/adrs/ADR-003-api-and-persistence.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Demo script](docs/architecture/demo.md)
 - [Account bootstrap](docs/runbooks/account-bootstrap.md)

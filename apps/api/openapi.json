@@ -1,0 +1,1025 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Incident Copilot API",
+    "description": "Read-oriented incident API. POST /incidents/simulate returns 201 on create and 200 when the same Idempotency-Key or simulation_id is replayed.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/aws": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Aws",
+        "operationId": "health_aws_health_aws_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwsHealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AwsHealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "List Incidents",
+        "operationId": "list_incidents_incidents_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/IncidentStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Service"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Incident"
+                  },
+                  "title": "Response List Incidents Incidents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/simulate": {
+      "post": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Simulate Incident",
+        "operationId": "simulate_incident_incidents_simulate_post",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateIncidentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Existing incident for the same Idempotency-Key or simulation_id. Replays return 200 and never create a second incident.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Daily incident quota reached."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "Get Incident",
+        "operationId": "get_incident_incidents__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/events": {
+      "get": {
+        "tags": [
+          "incidents"
+        ],
+        "summary": "List Incident Events",
+        "operationId": "list_incident_events_incidents__id__events_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentEvent"
+                  },
+                  "title": "Response List Incident Events Incidents  Id  Events Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/investigate": {
+      "post": {
+        "summary": "Investigate Incident",
+        "operationId": "investigate_incident_incidents__id__investigate_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/approve": {
+      "post": {
+        "summary": "Approve Incident",
+        "operationId": "approve_incident_incidents__id__approve_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/reject": {
+      "post": {
+        "summary": "Reject Incident",
+        "operationId": "reject_incident_incidents__id__reject_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/remediate": {
+      "post": {
+        "summary": "Remediate Incident",
+        "operationId": "remediate_incident_incidents__id__remediate_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/agent-runs": {
+      "get": {
+        "summary": "List Agent Runs",
+        "operationId": "list_agent_runs_incidents__id__agent_runs_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics/costs": {
+      "get": {
+        "summary": "Metrics Costs",
+        "operationId": "metrics_costs_metrics_costs_get",
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/evaluations": {
+      "get": {
+        "summary": "List Evaluations",
+        "operationId": "list_evaluations_evaluations_get",
+        "responses": {
+          "501": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApprovalStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "GRANTED",
+          "REJECTED",
+          "EXPIRED"
+        ],
+        "title": "ApprovalStatus"
+      },
+      "AwsHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "repository": {
+            "type": "string",
+            "title": "Repository"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "repository"
+        ],
+        "title": "AwsHealthResponse"
+      },
+      "Diagnosis": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "probable_cause": {
+            "type": "string",
+            "title": "Probable Cause"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "retrieved_sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Retrieved Sources"
+          },
+          "alternative_hypotheses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Alternative Hypotheses"
+          },
+          "recommended_action": {
+            "type": "string",
+            "title": "Recommended Action"
+          },
+          "requires_approval": {
+            "type": "boolean",
+            "title": "Requires Approval",
+            "default": true
+          },
+          "destructive": {
+            "type": "boolean",
+            "title": "Destructive",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "probable_cause",
+          "confidence",
+          "recommended_action"
+        ],
+        "title": "Diagnosis"
+      },
+      "EventType": {
+        "type": "string",
+        "enum": [
+          "ALARM_RECEIVED",
+          "INVESTIGATION_STARTED",
+          "TOOL_CALLED",
+          "EVIDENCE_ADDED",
+          "DIAGNOSIS_CREATED",
+          "APPROVAL_REQUESTED",
+          "APPROVAL_GRANTED",
+          "APPROVAL_REJECTED",
+          "REMEDIATION_EXECUTED",
+          "INCIDENT_RESOLVED",
+          "STATUS_CHANGED"
+        ],
+        "title": "EventType"
+      },
+      "Evidence": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceKind"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "kind",
+          "source",
+          "summary",
+          "observed_at"
+        ],
+        "title": "Evidence"
+      },
+      "EvidenceKind": {
+        "type": "string",
+        "enum": [
+          "observed_evidence",
+          "retrieved_guidance",
+          "inference"
+        ],
+        "title": "EvidenceKind"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "Incident": {
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IncidentStatus"
+          },
+          "alarm_name": {
+            "type": "string",
+            "title": "Alarm Name"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "correlation_id": {
+            "type": "string",
+            "title": "Correlation Id"
+          },
+          "diagnosis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Diagnosis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "recommended_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Action"
+          },
+          "approval_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApprovalStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agent_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Run Id"
+          },
+          "estimated_ai_cost_usd": {
+            "type": "number",
+            "title": "Estimated Ai Cost Usd",
+            "default": 0.0
+          },
+          "simulation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Id"
+          },
+          "source_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Event Id"
+          },
+          "active_remediation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Remediation Id"
+          },
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "incident_id",
+          "service",
+          "severity",
+          "status",
+          "alarm_name",
+          "started_at",
+          "updated_at",
+          "correlation_id"
+        ],
+        "title": "Incident"
+      },
+      "IncidentEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/EventType"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Payload"
+          },
+          "from_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncidentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "to_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncidentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "incident_id",
+          "event_type",
+          "timestamp",
+          "actor"
+        ],
+        "title": "IncidentEvent"
+      },
+      "IncidentStatus": {
+        "type": "string",
+        "enum": [
+          "DETECTED",
+          "QUEUED",
+          "INVESTIGATING",
+          "DIAGNOSED",
+          "REMEDIATION_PROPOSED",
+          "AWAITING_APPROVAL",
+          "REJECTED",
+          "APPROVED",
+          "REMEDIATING",
+          "FAILED",
+          "RESOLVED"
+        ],
+        "title": "IncidentStatus"
+      },
+      "ScenarioId": {
+        "type": "string",
+        "enum": [
+          "deployment_regression",
+          "connection_pool_exhaustion",
+          "queue_backlog",
+          "false_positive"
+        ],
+        "title": "ScenarioId"
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ],
+        "title": "Severity"
+      },
+      "SimulateIncidentRequest": {
+        "properties": {
+          "scenario": {
+            "$ref": "#/components/schemas/ScenarioId"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "simulation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scenario"
+        ],
+        "title": "SimulateIncidentRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

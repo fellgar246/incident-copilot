@@ -12,6 +12,7 @@ class SimulateIncidentRequest(BaseModel):
 
     scenario: ScenarioId
     seed: str | None = None
+    simulation_id: str | None = Field(default=None, min_length=1)
 
 
 class ApproveIncidentRequest(BaseModel):

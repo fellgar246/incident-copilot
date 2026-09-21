@@ -23,7 +23,12 @@ class IncidentRepository(Protocol):
 
     def list_events(self, incident_id: str) -> list[IncidentEvent]: ...
 
-    def list_incidents(self) -> list[Incident]: ...
+    def list_incidents(
+        self,
+        *,
+        status: IncidentStatus | None = None,
+        service: str | None = None,
+    ) -> list[Incident]: ...
 
     def event_exists(self, event_id: str) -> bool: ...
 
@@ -37,6 +42,7 @@ class InMemoryIncidentRepository:
         self._appended_event_ids: dict[str, str] = {}
         self._source_event_index: dict[str, str] = {}
         self._simulation_index: dict[str, str] = {}
+        self._idempotency_index: dict[str, str] = {}
 
     def get(self, incident_id: str) -> Incident | None:
         incident = self._incidents.get(incident_id)
@@ -79,12 +85,35 @@ class InMemoryIncidentRepository:
         events = list(self._events.get(incident_id, []))
         return sorted(events, key=lambda item: item.timestamp)
 
-    def list_incidents(self) -> list[Incident]:
+    def list_incidents(
+        self,
+        *,
+        status: IncidentStatus | None = None,
+        service: str | None = None,
+    ) -> list[Incident]:
         incidents = [item.model_copy(deep=True) for item in self._incidents.values()]
+        if status is not None:
+            incidents = [item for item in incidents if item.status == status]
+        if service is not None:
+            incidents = [item for item in incidents if item.service == service]
         return sorted(incidents, key=lambda item: item.started_at, reverse=True)
 
     def event_exists(self, event_id: str) -> bool:
         return event_id in self._appended_event_ids
+
+    def ping(self) -> dict[str, str]:
+        return {"status": "ok", "repository": "memory"}
+
+    def get_by_idempotency_key(self, key: str) -> Incident | None:
+        incident_id = self._idempotency_index.get(key)
+        if incident_id is None:
+            return None
+        return self.get(incident_id)
+
+    def remember_idempotency(self, key: str, incident_id: str) -> None:
+        if not key:
+            raise ValueError("idempotency key is required")
+        self._idempotency_index.setdefault(key, incident_id)
 
     def has_active_remediation(self, incident_id: str) -> bool:
         incident = self._incidents.get(incident_id)

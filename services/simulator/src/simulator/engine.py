@@ -97,9 +97,7 @@ def simulate(scenario: ScenarioId | str, seed: str | None = None) -> IncidentFix
     )
 
 
-def _evidence(
-    scenario: ScenarioId, seed: str, service: str, origin: datetime
-) -> list[Evidence]:
+def _evidence(scenario: ScenarioId, seed: str, service: str, origin: datetime) -> list[Evidence]:
     def eid(name: str) -> str:
         return seeded_id("evd", seed, f"{scenario}:{name}")
 
