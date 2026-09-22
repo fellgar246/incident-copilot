@@ -21,7 +21,7 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract, foundation, local domain, HTTP + DynamoDB, and event-driven ingest: EventBridge bus → SQS → `incident-worker` Lambda → DynamoDB, with a DLQ, bounded retries, and idempotency on `event_id`. `POST /incidents/simulate` remains a **test shortcut** that writes DynamoDB (and, when `EVENT_BUS_NAME` is set, also publishes to the bus). Investigation, the agent runtime, and the dashboard UI land in later slices.
+Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, and read-only evidence tools. `query_logs`, `query_metrics`, and `get_recent_deployments` return redacted, size-capped JSON for the demo services. Locally they read simulator fixtures. In AWS, `cloudwatch-read-tool-role` can read only the demo log groups and the `AIIncidentCopilot/Demo` metric namespace. Investigation, the agent runtime, and the dashboard UI land in later slices.
 
 ## Repository layout
 
@@ -95,6 +95,18 @@ python scripts/trigger_incident.py deployment_regression --put-events --bus "$(t
 
 `POST /incidents/simulate` is the HTTP test shortcut (direct DynamoDB write). In AWS it also fans out `incident.detected.v1` to EventBridge; the worker no-ops on the duplicate `event_id`.
 
+## Evidence tools
+
+```bash
+source .venv/bin/activate
+python scripts/seed_telemetry.py deployment_regression --seed demo
+python scripts/seed_telemetry.py --all
+```
+
+The script seeds the four fixtures into an in-memory store and prints what `query_logs`, `query_metrics`, and `get_recent_deployments` return. The clock is the fixture start plus 10 minutes, so the relative windows cover the seeded samples. Add `--put-cloudwatch` after `terraform apply` to also write logs and custom metrics.
+
+Allowed log input is only `service`, `start_minutes_ago`, `level`, and `limit`. Allowed metrics are `error_rate`, `request_count`, `latency_p95`, `throttles`, `duration`, and `custom_health`. Responses are marked untrusted, redacted, and kept under 12 KB. A free-form query or a service outside `payments-api`, `orders-api`, and `notifications-worker` is rejected.
+
 ## Cost guardrails
 
 Design target: **USD 5 / month** for `dev`. This is a design goal, not a billing guarantee.
@@ -160,7 +172,7 @@ remediation-tool-role
 ci-deploy-role
 ```
 
-`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `ci-deploy-role` exists only when OIDC is enabled.
+`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `cloudwatch-read-tool-role` may filter the demo log groups and read the `AIIncidentCopilot/Demo` metric namespace. `ci-deploy-role` exists only when OIDC is enabled.
 
 ## Make targets
 
@@ -182,6 +194,7 @@ ci-deploy-role
 - [ADR-002 Product architecture](docs/adrs/ADR-002-product-architecture.md)
 - [ADR-003 HTTP API and DynamoDB persistence](docs/adrs/ADR-003-api-and-persistence.md)
 - [ADR-004 Event-driven incident ingest](docs/adrs/ADR-004-event-ingestion.md)
+- [ADR-005 Telemetry evidence tools](docs/adrs/ADR-005-telemetry-tools.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Demo script](docs/architecture/demo.md)
 - [Account bootstrap](docs/runbooks/account-bootstrap.md)

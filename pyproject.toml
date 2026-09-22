@@ -47,6 +47,8 @@ pythonpath = [
   "packages/observability/src",
   "services/simulator/src",
   "services/incident-worker/src",
+  "services/tools/cloudwatch/src",
+  "services/tools/deployments/src",
   "apps/api/src",
 ]
 addopts = "-q --strict-markers"
@@ -60,6 +62,8 @@ mypy_path = [
   "packages/observability/src",
   "services/simulator/src",
   "services/incident-worker/src",
+  "services/tools/cloudwatch/src",
+  "services/tools/deployments/src",
   "apps/api/src",
 ]
 exclude = [

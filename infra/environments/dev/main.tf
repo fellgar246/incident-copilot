@@ -44,6 +44,15 @@ module "events" {
   max_incidents_per_day          = var.max_incidents_per_day
 }
 
+module "telemetry" {
+  source = "../../modules/telemetry"
+
+  project                        = var.project
+  environment                    = var.environment
+  log_retention_days             = var.log_retention_days
+  cloudwatch_read_tool_role_name = module.iam.cloudwatch_read_tool_role_name
+}
+
 module "api" {
   source = "../../modules/api"
 
@@ -145,4 +154,16 @@ output "worker_function_name" {
 
 output "dlq_messages_alarm_name" {
   value = module.events.dlq_messages_alarm_name
+}
+
+output "cloudwatch_read_tool_role_arn" {
+  value = module.iam.cloudwatch_read_tool_role_arn
+}
+
+output "metric_namespace" {
+  value = module.telemetry.metric_namespace
+}
+
+output "demo_log_group_names" {
+  value = module.telemetry.log_group_names
 }

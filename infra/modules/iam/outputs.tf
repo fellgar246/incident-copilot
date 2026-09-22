@@ -17,3 +17,13 @@ output "investigation_worker_role_name" {
   description = "Name of investigation-worker-role."
   value       = aws_iam_role.investigation_worker.name
 }
+
+output "cloudwatch_read_tool_role_arn" {
+  description = "ARN of cloudwatch-read-tool-role."
+  value       = aws_iam_role.cloudwatch_read_tool.arn
+}
+
+output "cloudwatch_read_tool_role_name" {
+  description = "Name of cloudwatch-read-tool-role."
+  value       = aws_iam_role.cloudwatch_read_tool.name
+}

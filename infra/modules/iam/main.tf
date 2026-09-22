@@ -85,3 +85,9 @@ resource "aws_iam_role" "investigation_worker" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   description        = "investigation-worker-role: DynamoDB writes and SQS reads for incident ingest."
 }
+
+resource "aws_iam_role" "cloudwatch_read_tool" {
+  name               = "${var.project}-${var.environment}-cloudwatch-read-tool"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  description        = "cloudwatch-read-tool-role: read-only access to allowlisted demo log groups and metrics."
+}

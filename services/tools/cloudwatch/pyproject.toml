@@ -1,0 +1,27 @@
+[project]
+name = "cloudwatch-tool"
+version = "0.1.0"
+description = "Read-only log and metric evidence tools for demo services."
+requires-python = ">=3.12"
+dependencies = [
+  "boto3>=1.35",
+  "cost-guardrails",
+  "incident-contracts",
+  "jsonschema>=4.23",
+  "observability",
+  "pydantic>=2.9",
+  "simulator",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cloudwatch_tool = ["py.typed", "schemas/*.json"]

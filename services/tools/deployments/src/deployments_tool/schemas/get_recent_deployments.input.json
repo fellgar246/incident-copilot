@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/get_recent_deployments.input.json",
+  "title": "get_recent_deployments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["service", "lookback_hours"],
+  "properties": {
+    "service": {
+      "type": "string",
+      "enum": ["payments-api", "orders-api", "notifications-worker"]
+    },
+    "lookback_hours": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 72
+    }
+  }
+}
