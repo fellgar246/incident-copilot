@@ -33,6 +33,8 @@ def settings() -> Settings:
         aws_region="us-east-1",
         log_retention_days=7,
         cors_origins=("http://localhost:3000",),
+        event_bus_name="",
+        event_source="ai-incident-copilot.incidents",
     )
 
 

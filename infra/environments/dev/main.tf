@@ -27,6 +27,23 @@ module "dynamodb" {
   log_retention_days = var.log_retention_days
 }
 
+module "events" {
+  source = "../../modules/events"
+
+  project                        = var.project
+  environment                    = var.environment
+  aws_region                     = var.aws_region
+  lambda_source_dir              = abspath("${path.module}/../../../services/incident-worker/src")
+  investigation_worker_role_arn  = module.iam.investigation_worker_role_arn
+  investigation_worker_role_name = module.iam.investigation_worker_role_name
+  incidents_table_name           = module.dynamodb.incidents_table_name
+  incidents_table_arn            = module.dynamodb.incidents_table_arn
+  deployments_table_name         = module.dynamodb.deployments_table_name
+  log_retention_days             = var.log_retention_days
+  ai_enabled                     = var.ai_enabled
+  max_incidents_per_day          = var.max_incidents_per_day
+}
+
 module "api" {
   source = "../../modules/api"
 
@@ -41,6 +58,9 @@ module "api" {
   log_retention_days     = var.log_retention_days
   ai_enabled             = var.ai_enabled
   max_incidents_per_day  = var.max_incidents_per_day
+  event_bus_name         = module.events.event_bus_name
+  event_bus_arn          = module.events.event_bus_arn
+  event_source           = module.events.event_source
 }
 
 output "aws_region" {
@@ -97,4 +117,32 @@ output "api_endpoint" {
 
 output "api_role_arn" {
   value = module.api.api_role_arn
+}
+
+output "investigation_worker_role_arn" {
+  value = module.iam.investigation_worker_role_arn
+}
+
+output "event_bus_name" {
+  value = module.events.event_bus_name
+}
+
+output "event_source" {
+  value = module.events.event_source
+}
+
+output "ingest_queue_url" {
+  value = module.events.queue_url
+}
+
+output "ingest_dlq_url" {
+  value = module.events.dlq_url
+}
+
+output "worker_function_name" {
+  value = module.events.worker_function_name
+}
+
+output "dlq_messages_alarm_name" {
+  value = module.events.dlq_messages_alarm_name
 }

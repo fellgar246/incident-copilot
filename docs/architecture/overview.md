@@ -132,6 +132,8 @@ GET    /evaluations
 
 HTTP handlers for health, incident list/detail/events, and simulate live in `apps/api`. Remaining catalog routes currently return 501. Mutable simulate calls require `Idempotency-Key` or reuse `simulation_id`; a matching replay returns 200 with the existing incident.
 
+Detection events use the versioned `incident.detected.v1` schema on a custom EventBridge bus. SQS buffers work for `incident-worker`; after three failed receives the message lands on a DLQ whose depth is the `dlq_messages` alarm. `event_id` is the idempotency key. `POST /incidents/simulate` is a test shortcut that writes DynamoDB directly (and publishes to the bus when `EVENT_BUS_NAME` is set) so local HTTP demos stay synchronous.
+
 ## Dashboard
 
 | Route | Shows |

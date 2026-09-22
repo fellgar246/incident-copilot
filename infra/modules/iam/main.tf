@@ -66,3 +66,22 @@ resource "aws_iam_role_policy" "ci_deploy_skeleton" {
   role   = aws_iam_role.ci_deploy[0].id
   policy = data.aws_iam_policy_document.ci_deploy_skeleton[0].json
 }
+
+data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    sid     = "LambdaAssume"
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "investigation_worker" {
+  name               = "${var.project}-${var.environment}-investigation-worker"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  description        = "investigation-worker-role: DynamoDB writes and SQS reads for incident ingest."
+}

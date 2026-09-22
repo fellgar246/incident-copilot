@@ -21,7 +21,7 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract, foundation, local domain, and the HTTP + DynamoDB slice: health and read-oriented incident APIs, deterministic `POST /incidents/simulate` with idempotent replays, FastAPI on Lambda via Mangum, on-demand DynamoDB (incidents/events + deployments) with TTL, and `api-role` least privilege. Investigation, EventBridge ingestion, the agent runtime, and the dashboard UI land in later slices.
+Product contract, foundation, local domain, HTTP + DynamoDB, and event-driven ingest: EventBridge bus → SQS → `incident-worker` Lambda → DynamoDB, with a DLQ, bounded retries, and idempotency on `event_id`. `POST /incidents/simulate` remains a **test shortcut** that writes DynamoDB (and, when `EVENT_BUS_NAME` is set, also publishes to the bus). Investigation, the agent runtime, and the dashboard UI land in later slices.
 
 ## Repository layout
 
@@ -36,7 +36,7 @@ fixtures/incidents/      golden simulator snapshots
 infra/                   Terraform modules + environments/dev
 ```
 
-HTTP handlers live in `apps/api`. Persistence is selected with `INCIDENT_REPOSITORY` (`memory` locally, `dynamodb` in AWS). The generated OpenAPI contract is `apps/api/openapi.json`.
+HTTP handlers live in `apps/api`. Persistence is selected with `INCIDENT_REPOSITORY` (`memory` locally, `dynamodb` in AWS). The generated OpenAPI contract is `apps/api/openapi.json`. The ingest worker lives in `services/incident-worker`.
 
 ## Prerequisites
 
@@ -80,6 +80,20 @@ make run-api
 `POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Remaining product routes respond **501** until later slices. Logs are JSON and include `request_id` / `correlation_id`; they never include bearer tokens or AWS credentials.
 
 Set `INCIDENT_REPOSITORY=dynamodb` (and table names from `terraform output`) to point the process at AWS instead of the in-memory store.
+
+## Event ingest
+
+```bash
+source .venv/bin/activate
+python scripts/trigger_incident.py deployment_regression --seed demo
+python scripts/trigger_incident.py --all --ingest-local
+# after terraform apply:
+python scripts/trigger_incident.py deployment_regression --put-events --bus "$(terraform -chdir=infra/environments/dev output -raw event_bus_name)"
+```
+
+`event_id` is the idempotency key: a duplicate event never creates a second incident. The synthetic event stores `correlation_id` on the incident so the trace is recoverable. Poison messages retry three times, then land on the SQS DLQ; CloudWatch alarm `dlq_messages` watches DLQ depth.
+
+`POST /incidents/simulate` is the HTTP test shortcut (direct DynamoDB write). In AWS it also fans out `incident.detected.v1` to EventBridge; the worker no-ops on the duplicate `event_id`.
 
 ## Cost guardrails
 
@@ -146,7 +160,7 @@ remediation-tool-role
 ci-deploy-role
 ```
 
-`api-role` is the API Lambda execution role: CloudWatch logs for that function plus Get/Put/Query/Scan/Describe on the incidents and deployments tables. `ci-deploy-role` exists only when OIDC is enabled.
+`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `ci-deploy-role` exists only when OIDC is enabled.
 
 ## Make targets
 
@@ -167,6 +181,7 @@ ci-deploy-role
 - [ADR-001 Cost and architecture guardrails](docs/adrs/ADR-001-cost-and-architecture-guardrails.md)
 - [ADR-002 Product architecture](docs/adrs/ADR-002-product-architecture.md)
 - [ADR-003 HTTP API and DynamoDB persistence](docs/adrs/ADR-003-api-and-persistence.md)
+- [ADR-004 Event-driven incident ingest](docs/adrs/ADR-004-event-ingestion.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Demo script](docs/architecture/demo.md)
 - [Account bootstrap](docs/runbooks/account-bootstrap.md)

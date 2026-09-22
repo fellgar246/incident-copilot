@@ -1,10 +1,13 @@
 [project]
-name = "incident-contracts"
+name = "incident-worker"
 version = "0.1.0"
-description = "Shared domain contracts for incidents, events, and tools."
+description = "SQS worker that ingests incident.detected.v1 events into DynamoDB."
 requires-python = ">=3.12"
 dependencies = [
-  "pydantic>=2.9",
+  "boto3>=1.35",
+  "incident-contracts",
+  "observability",
+  "cost-guardrails",
 ]
 
 [build-system]
@@ -16,6 +19,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-incident_contracts = ["py.typed", "schemas/*.json"]

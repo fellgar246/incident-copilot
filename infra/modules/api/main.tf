@@ -26,6 +26,8 @@ locals {
     INCIDENTS_TABLE_NAME             = var.incidents_table_name
     DEPLOYMENTS_TABLE_NAME           = var.deployments_table_name
     CORS_ORIGINS                     = var.cors_origins
+    EVENT_BUS_NAME                   = var.event_bus_name
+    EVENT_SOURCE                     = var.event_source
   }
 }
 
@@ -87,6 +89,16 @@ data "aws_iam_policy_document" "api" {
       var.incidents_table_arn,
       var.deployments_table_arn,
     ]
+  }
+
+  dynamic "statement" {
+    for_each = var.event_bus_arn == "" ? [] : [var.event_bus_arn]
+    content {
+      sid       = "PutIncidentEvents"
+      effect    = "Allow"
+      actions   = ["events:PutEvents"]
+      resources = [statement.value]
+    }
   }
 }
 

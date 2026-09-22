@@ -10,6 +10,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
 from incident_contracts.api_models import SimulateIncidentRequest
 from incident_contracts.enums import IncidentStatus
 from incident_contracts.errors import IncidentNotFoundError
+from incident_contracts.events import detected_event_from_fixture
 from incident_contracts.models import Incident, IncidentEvent
 from incident_contracts.surface import IDEMPOTENCY_HEADER
 from observability.logging import bind_context
@@ -86,6 +87,13 @@ def simulate_incident(
     container.deployments.save_many(fixture.deployments)
     if idempotency_key:
         container.store.remember_idempotency(idempotency_key, incident.incident_id)
+    try:
+        container.publisher.publish_detected(detected_event_from_fixture(fixture))
+    except Exception:
+        logger.exception(
+            "incident.bus_publish_failed",
+            extra={"fields": {"incident_id": incident.incident_id}},
+        )
     bind_context(incident_id=incident.incident_id, correlation_id=incident.correlation_id)
     logger.info(
         "incident.simulate_created",

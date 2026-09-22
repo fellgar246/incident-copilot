@@ -1,4 +1,4 @@
-"""Runtime settings for the HTTP API. Defaults keep local tests off AWS."""
+"""Runtime settings for the ingest worker. Defaults keep local tests off AWS."""
 
 from __future__ import annotations
 
@@ -14,22 +14,14 @@ class Settings:
     deployments_table_name: str
     aws_region: str
     log_retention_days: int
-    cors_origins: tuple[str, ...]
-    event_bus_name: str
-    event_source: str
 
     @property
     def use_dynamodb(self) -> bool:
         return self.repository == "dynamodb"
 
-    @property
-    def publish_to_bus(self) -> bool:
-        return bool(self.event_bus_name)
-
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    origins = os.environ.get("CORS_ORIGINS", "http://localhost:3000")
     return Settings(
         repository=os.environ.get("INCIDENT_REPOSITORY", "memory").strip().lower(),
         incidents_table_name=os.environ.get(
@@ -40,9 +32,6 @@ def get_settings() -> Settings:
         ),
         aws_region=os.environ.get("AWS_REGION", "us-east-1"),
         log_retention_days=int(os.environ.get("LOG_RETENTION_DAYS", "7")),
-        cors_origins=tuple(item.strip() for item in origins.split(",") if item.strip()),
-        event_bus_name=os.environ.get("EVENT_BUS_NAME", "").strip(),
-        event_source=os.environ.get("EVENT_SOURCE", "ai-incident-copilot.incidents").strip(),
     )
 
 

@@ -141,9 +141,7 @@ class DynamoIncidentRepository:
         expires_at = self._expires_at(event.timestamp)
         try:
             self._table.put_item(
-                Item=event_id_index_item(
-                    event.event_id, event.incident_id, expires_at=expires_at
-                ),
+                Item=event_id_index_item(event.event_id, event.incident_id, expires_at=expires_at),
                 ConditionExpression=CONDITION_NEW_ITEM,
             )
         except ClientError as exc:

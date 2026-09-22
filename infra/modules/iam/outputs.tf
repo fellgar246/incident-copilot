@@ -7,3 +7,13 @@ output "ci_deploy_role_arn" {
   description = "ARN of the CI deploy role skeleton, if enabled."
   value       = try(aws_iam_role.ci_deploy[0].arn, null)
 }
+
+output "investigation_worker_role_arn" {
+  description = "ARN of investigation-worker-role."
+  value       = aws_iam_role.investigation_worker.arn
+}
+
+output "investigation_worker_role_name" {
+  description = "Name of investigation-worker-role."
+  value       = aws_iam_role.investigation_worker.name
+}

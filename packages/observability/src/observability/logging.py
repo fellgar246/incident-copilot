@@ -15,6 +15,7 @@ from observability.correlation import new_correlation_id
 _REQUEST_ID: ContextVar[str | None] = ContextVar("request_id", default=None)
 _CORRELATION_ID: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 _INCIDENT_ID: ContextVar[str | None] = ContextVar("incident_id", default=None)
+_EVENT_ID: ContextVar[str | None] = ContextVar("event_id", default=None)
 
 SENSITIVE_KEYS = frozenset(
     {
@@ -48,6 +49,7 @@ def bind_context(
     request_id: str | None = None,
     correlation_id: str | None = None,
     incident_id: str | None = None,
+    event_id: str | None = None,
 ) -> None:
     """Attach identifiers to the current task so later log records inherit them."""
     if request_id is not None:
@@ -56,6 +58,8 @@ def bind_context(
         _CORRELATION_ID.set(correlation_id)
     if incident_id is not None:
         _INCIDENT_ID.set(incident_id)
+    if event_id is not None:
+        _EVENT_ID.set(event_id)
 
 
 def current_context() -> dict[str, str]:
@@ -64,12 +68,15 @@ def current_context() -> dict[str, str]:
     request_id = _REQUEST_ID.get()
     correlation_id = _CORRELATION_ID.get()
     incident_id = _INCIDENT_ID.get()
+    event_id = _EVENT_ID.get()
     if request_id:
         payload["request_id"] = request_id
     if correlation_id:
         payload["correlation_id"] = correlation_id
     if incident_id:
         payload["incident_id"] = incident_id
+    if event_id:
+        payload["event_id"] = event_id
     return payload
 
 
@@ -77,6 +84,7 @@ def clear_context() -> None:
     _REQUEST_ID.set(None)
     _CORRELATION_ID.set(None)
     _INCIDENT_ID.set(None)
+    _EVENT_ID.set(None)
 
 
 def redact(value: Any) -> Any:
@@ -108,7 +116,7 @@ class JsonLogFormatter(logging.Formatter):
             "message": self._safe_message(record),
         }
         payload.update(current_context())
-        for field in ("request_id", "incident_id", "correlation_id"):
+        for field in ("request_id", "incident_id", "correlation_id", "event_id"):
             value = getattr(record, field, None)
             if value:
                 payload[field] = value

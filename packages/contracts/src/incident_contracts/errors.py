@@ -25,3 +25,11 @@ class InvalidApprovalError(DomainError):
 
 class InvalidActorError(DomainError):
     """Raised when an event actor is not system, agent, or human:{id}."""
+
+
+class UnsupportedSchemaVersionError(DomainError):
+    """Raised when an ingest event uses a schema_version this process cannot handle."""
+
+
+class InvalidIncidentEventError(DomainError):
+    """Raised when an incident.detected payload is missing required fields or is malformed."""

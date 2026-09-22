@@ -30,7 +30,12 @@ def test_redact_strips_bearer_tokens_and_access_keys() -> None:
 
 def test_json_formatter_includes_bound_context() -> None:
     clear_context()
-    bind_context(request_id="req_1", correlation_id="cor_1", incident_id="inc_1")
+    bind_context(
+        request_id="req_1",
+        correlation_id="cor_1",
+        incident_id="inc_1",
+        event_id="evt_1",
+    )
     record = logging.LogRecord(
         name="api",
         level=logging.INFO,
@@ -46,6 +51,7 @@ def test_json_formatter_includes_bound_context() -> None:
     assert payload["request_id"] == "req_1"
     assert payload["correlation_id"] == "cor_1"
     assert payload["incident_id"] == "inc_1"
+    assert payload["event_id"] == "evt_1"
     assert payload["service"] == "payments-api"
     assert payload["authorization"] == "[REDACTED]"
     assert "token-value" not in line

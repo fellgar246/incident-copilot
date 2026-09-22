@@ -10,12 +10,22 @@ variable "environment" {
 
 variable "aws_region" {
   type        = string
-  description = "AWS region injected into the Lambda environment."
+  description = "AWS region injected into the worker Lambda environment."
 }
 
 variable "lambda_source_dir" {
   type        = string
-  description = "Directory zipped as the API Lambda. Must contain the api Python package."
+  description = "Directory zipped as the worker Lambda. Must contain the incident_worker package."
+}
+
+variable "investigation_worker_role_arn" {
+  type        = string
+  description = "ARN of investigation-worker-role."
+}
+
+variable "investigation_worker_role_name" {
+  type        = string
+  description = "Name of investigation-worker-role, used to attach ingest permissions."
 }
 
 variable "incidents_table_name" {
@@ -30,12 +40,7 @@ variable "incidents_table_arn" {
 
 variable "deployments_table_name" {
   type        = string
-  description = "DynamoDB deployments table name."
-}
-
-variable "deployments_table_arn" {
-  type        = string
-  description = "DynamoDB deployments table ARN."
+  description = "DynamoDB deployments table name (passed through for the shared adapter)."
 }
 
 variable "log_retention_days" {
@@ -46,26 +51,43 @@ variable "log_retention_days" {
 
 variable "lambda_timeout_seconds" {
   type        = number
-  description = "API Lambda timeout."
+  description = "Worker Lambda timeout. Keep short; SQS retries cover bounded backoff."
   default     = 10
 }
 
 variable "lambda_memory_mb" {
   type        = number
-  description = "API Lambda memory. Keep low to limit cost."
+  description = "Worker Lambda memory. Keep low to limit cost."
   default     = 256
 }
 
 variable "reserved_concurrent_executions" {
   type        = number
-  description = "Cap concurrent API Lambdas in this environment."
-  default     = 5
+  description = "Cap concurrent worker Lambdas in this environment."
+  default     = 2
+}
+
+variable "lambda_maximum_concurrency" {
+  type        = number
+  description = "Maximum concurrent SQS event-source invocations."
+  default     = 2
+}
+
+variable "max_receive_count" {
+  type        = number
+  description = "SQS receives before a message is moved to the DLQ."
+  default     = 3
+}
+
+variable "event_source" {
+  type        = string
+  description = "EventBridge source for incident.detected.v1."
+  default     = "ai-incident-copilot.incidents"
 }
 
 variable "ai_enabled" {
-  type        = bool
-  description = "AI circuit breaker mirrored into the Lambda environment."
-  default     = true
+  type    = bool
+  default = true
 }
 
 variable "agent_invocation_enabled" {
@@ -151,28 +173,4 @@ variable "max_model_output_tokens_per_call" {
 variable "eval_sample_rate" {
   type    = string
   default = "0.10"
-}
-
-variable "cors_origins" {
-  type        = string
-  description = "Comma-separated CORS origins for the API."
-  default     = "http://localhost:3000"
-}
-
-variable "event_bus_name" {
-  type        = string
-  description = "Event bus the API publishes incident.detected.v1 onto. Empty disables publish."
-  default     = ""
-}
-
-variable "event_bus_arn" {
-  type        = string
-  description = "ARN of the incident event bus. Empty skips PutEvents IAM."
-  default     = ""
-}
-
-variable "event_source" {
-  type        = string
-  description = "EventBridge source used when publishing incident.detected.v1."
-  default     = "ai-incident-copilot.incidents"
 }

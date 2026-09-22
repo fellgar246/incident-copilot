@@ -31,4 +31,4 @@ Incident state lived only in memory. The dashboard and workers need an HTTP surf
 
 ## Review date
 
-Revisit when EventBridge ingestion writes the same tables, or if listing volume needs a query index instead of a bounded scan.
+Revisit if listing volume needs a query index instead of a bounded scan, or when CloudWatch Alarms become a second producer on the event bus.

@@ -15,6 +15,7 @@ from incident_contracts.service import IncidentService
 
 from api.persistence.deployments import InMemoryDeploymentRepository
 from api.persistence.dynamodb import DynamoIncidentRepository
+from api.publisher import EventBridgePublisher, EventPublisher, NullEventPublisher
 from api.settings import Settings, get_settings
 
 
@@ -36,6 +37,7 @@ class AppContainer:
     store: IncidentStore
     deployments: DeploymentStore
     quotas: AppQuotas
+    publisher: EventPublisher
 
     @property
     def service(self) -> IncidentService:
@@ -58,6 +60,7 @@ def build_container(
     store: IncidentStore | None = None,
     deployments: DeploymentStore | None = None,
     quotas: AppQuotas | None = None,
+    publisher: EventPublisher | None = None,
 ) -> AppContainer:
     resolved_settings = settings or get_settings()
     resolved_store = store if store is not None else _default_store(resolved_settings)
@@ -72,6 +75,16 @@ def build_container(
         store=resolved_store,
         deployments=resolved_deployments,
         quotas=quotas or load_app_quotas(),
+        publisher=publisher if publisher is not None else _default_publisher(resolved_settings),
+    )
+
+
+def _default_publisher(settings: Settings) -> EventPublisher:
+    if not settings.publish_to_bus:
+        return NullEventPublisher()
+    events = boto3.client("events", region_name=settings.aws_region)
+    return EventBridgePublisher(
+        events, bus_name=settings.event_bus_name, source=settings.event_source
     )
 
 

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/schemas/incident.detected.v1.json",
+  "title": "incident.detected.v1",
+  "description": "Versioned incident detection event published on the application event bus.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "event_id",
+    "alarm_name",
+    "service",
+    "severity",
+    "occurred_at",
+    "correlation_id",
+    "scenario"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1",
+      "description": "Document version. Consumers must reject unsupported higher versions with an explicit error."
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Idempotency key. Duplicate event_id values must not create a second incident."
+    },
+    "alarm_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "service": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario": {
+      "type": "string",
+      "enum": [
+        "deployment_regression",
+        "connection_pool_exhaustion",
+        "queue_backlog",
+        "false_positive"
+      ]
+    },
+    "incident_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulation_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

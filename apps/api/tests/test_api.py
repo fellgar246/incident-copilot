@@ -169,3 +169,39 @@ def test_propagates_incoming_correlation_headers(client: TestClient) -> None:
     )
     assert response.headers["x-request-id"] == "req-fixed"
     assert response.headers["x-correlation-id"] == "cor-fixed"
+
+
+class _RecordingPublisher:
+    def __init__(self) -> None:
+        self.events: list[object] = []
+
+    def publish_detected(self, event: object) -> None:
+        self.events.append(event)
+
+
+def test_simulate_publishes_detected_event_once(
+    settings: Settings,
+    repository: InMemoryIncidentRepository,
+    deployments: InMemoryDeploymentRepository,
+) -> None:
+    publisher = _RecordingPublisher()
+    client = TestClient(
+        create_app(
+            container=build_container(
+                settings=settings,
+                store=repository,
+                deployments=deployments,
+                quotas=load_quotas(ENV_EXAMPLE),
+                publisher=publisher,
+            )
+        )
+    )
+    payload = {"scenario": ScenarioId.DEPLOYMENT_REGRESSION.value, "seed": "bus-fanout"}
+    first = client.post("/incidents/simulate", json=payload)
+    second = client.post("/incidents/simulate", json=payload)
+    assert first.status_code == 201
+    assert second.status_code == 200
+    assert len(publisher.events) == 1
+    event = publisher.events[0]
+    assert event.event_id == first.json()["source_event_id"]  # type: ignore[attr-defined]
+    assert event.correlation_id == first.json()["correlation_id"]  # type: ignore[attr-defined]
