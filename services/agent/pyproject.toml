@@ -1,20 +1,15 @@
 [project]
-name = "api"
+name = "incident-agent"
 version = "0.1.0"
-description = "FastAPI HTTP API for incidents."
+description = "Incident investigation agent with bounded Bedrock turns."
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi>=0.115",
-  "mangum>=0.19",
   "boto3>=1.35",
-  "uvicorn>=0.30",
-  "incident-agent",
-  "incident-contracts",
-  "observability",
-  "simulator",
-  "cloudwatch-tool",
-  "deployments-tool",
   "cost-guardrails",
+  "incident-contracts",
+  "jsonschema>=4.23",
+  "observability",
+  "pydantic>=2.9",
 ]
 
 [build-system]
@@ -26,3 +21,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+agent = ["py.typed"]

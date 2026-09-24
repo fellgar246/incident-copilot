@@ -19,6 +19,11 @@ variable "metric_namespace" {
   default     = "AIIncidentCopilot/Demo"
 }
 
+variable "gateway_role_name" {
+  type        = string
+  description = "Gateway role that receives the same read-only telemetry policy."
+}
+
 variable "cloudwatch_read_tool_role_name" {
   type        = string
   description = "Name of cloudwatch-read-tool-role. The read policy is attached here."

@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from datetime import datetime
+from typing import Protocol, cast
 
 import boto3  # type: ignore[import-untyped]
+from agent.bedrock import build_model
+from agent.model import LanguageModel
+from agent.runs import AgentRunStore, InMemoryAgentRunStore
+from cloudwatch_tool.store import InMemoryTelemetryStore
 from cost_guardrails.envfile import parse_env_file
 from cost_guardrails.quotas import AppQuotas, load_quotas
 from fastapi import Request
@@ -30,6 +35,8 @@ class IncidentStore(IncidentRepository, Protocol):
 class DeploymentStore(Protocol):
     def save_many(self, deployments: list[Deployment]) -> None: ...
 
+    def query(self, *, service: str, since: datetime, limit: int) -> list[Deployment]: ...
+
 
 @dataclass
 class AppContainer:
@@ -38,6 +45,9 @@ class AppContainer:
     deployments: DeploymentStore
     quotas: AppQuotas
     publisher: EventPublisher
+    telemetry: InMemoryTelemetryStore
+    runs: AgentRunStore
+    model_factory: object
 
     @property
     def service(self) -> IncidentService:
@@ -61,6 +71,9 @@ def build_container(
     deployments: DeploymentStore | None = None,
     quotas: AppQuotas | None = None,
     publisher: EventPublisher | None = None,
+    telemetry: InMemoryTelemetryStore | None = None,
+    runs: AgentRunStore | None = None,
+    model_factory: object | None = None,
 ) -> AppContainer:
     resolved_settings = settings or get_settings()
     resolved_store = store if store is not None else _default_store(resolved_settings)
@@ -76,7 +89,22 @@ def build_container(
         deployments=resolved_deployments,
         quotas=quotas or load_app_quotas(),
         publisher=publisher if publisher is not None else _default_publisher(resolved_settings),
+        telemetry=telemetry or InMemoryTelemetryStore(),
+        runs=runs or InMemoryAgentRunStore(),
+        model_factory=model_factory or build_model,
     )
+
+
+def new_model(container: AppContainer) -> LanguageModel:
+    factory = container.model_factory
+    if not callable(factory):
+        raise RuntimeError("model factory is not callable")
+    model = factory()
+    if not callable(getattr(model, "complete", None)) or not isinstance(
+        getattr(model, "model_id", None), str
+    ):
+        raise RuntimeError("model factory did not return a language model")
+    return cast(LanguageModel, model)
 
 
 def _default_publisher(settings: Settings) -> EventPublisher:

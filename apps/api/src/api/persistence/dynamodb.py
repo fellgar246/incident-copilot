@@ -226,3 +226,7 @@ class DynamoIncidentRepository:
                 break
             kwargs["ExclusiveStartKey"] = start
         return sorted(items, key=lambda item: item.deployed_at, reverse=True)
+
+    def query(self, *, service: str, since: datetime, limit: int) -> list[Deployment]:
+        matched = [item for item in self.list_deployments(service) if item.deployed_at >= since]
+        return matched[:limit]

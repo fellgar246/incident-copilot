@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/events/tool_called.v1.json",
+  "title": "tool_called",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tool", "ok", "latency_ms", "truncated", "error"],
+  "properties": {
+    "tool": {
+      "type": "string",
+      "enum": ["get_incident", "query_logs", "query_metrics", "get_recent_deployments"]
+    },
+    "ok": { "type": "boolean" },
+    "latency_ms": { "type": "integer", "minimum": 0 },
+    "truncated": { "type": "boolean" },
+    "error": { "type": ["string", "null"] }
+  }
+}

@@ -12,11 +12,14 @@ module "budgets" {
 module "iam" {
   source = "../../modules/iam"
 
-  project            = var.project
-  environment        = var.environment
-  enable_github_oidc = var.enable_github_oidc
-  github_org         = var.github_org
-  github_repo        = var.github_repo
+  project               = var.project
+  environment           = var.environment
+  aws_region            = var.aws_region
+  enable_github_oidc    = var.enable_github_oidc
+  github_org            = var.github_org
+  github_repo           = var.github_repo
+  incidents_table_arn   = module.dynamodb.incidents_table_arn
+  deployments_table_arn = module.dynamodb.deployments_table_arn
 }
 
 module "dynamodb" {
@@ -51,6 +54,7 @@ module "telemetry" {
   environment                    = var.environment
   log_retention_days             = var.log_retention_days
   cloudwatch_read_tool_role_name = module.iam.cloudwatch_read_tool_role_name
+  gateway_role_name              = module.iam.agentcore_gateway_role_name
 }
 
 module "api" {
@@ -156,8 +160,16 @@ output "dlq_messages_alarm_name" {
   value = module.events.dlq_messages_alarm_name
 }
 
+output "agentcore_runtime_role_arn" {
+  value = module.iam.agentcore_runtime_role_arn
+}
+
 output "cloudwatch_read_tool_role_arn" {
   value = module.iam.cloudwatch_read_tool_role_arn
+}
+
+output "agentcore_gateway_role_arn" {
+  value = module.iam.agentcore_gateway_role_arn
 }
 
 output "metric_namespace" {

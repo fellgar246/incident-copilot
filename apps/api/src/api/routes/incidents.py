@@ -85,6 +85,10 @@ def simulate_incident(
     _enforce_daily_quota(container)
     incident = container.service.ingest_fixture(fixture)
     container.deployments.save_many(fixture.deployments)
+    for sample in fixture.telemetry.logs:
+        container.telemetry.write_log(sample)
+    for point in fixture.telemetry.metrics:
+        container.telemetry.write_metric(point)
     if idempotency_key:
         container.store.remember_idempotency(idempotency_key, incident.incident_id)
     try:

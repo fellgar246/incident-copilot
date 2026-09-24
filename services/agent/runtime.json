@@ -1,0 +1,11 @@
+{
+  "runtime_mode": "microvm",
+  "description": "AgentCore Runtime microVM package. Runtime Instance is not used.",
+  "entrypoint": "agent.entrypoint:handler",
+  "session": {
+    "max_session_seconds_env": "MAX_SESSION_SECONDS",
+    "max_agent_turns_env": "MAX_AGENT_TURNS",
+    "max_tool_calls_per_run_env": "MAX_TOOL_CALLS_PER_RUN"
+  },
+  "payload": ["incident_id", "correlation_id", "idempotency_key"]
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/get_incident.output.v1.json",
+  "title": "get_incident_result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool",
+    "tool_class",
+    "requires_approval",
+    "incident_id",
+    "service",
+    "alarm_name",
+    "severity",
+    "status",
+    "started_at",
+    "updated_at",
+    "known_context",
+    "redacted",
+    "truncated",
+    "untrusted"
+  ],
+  "properties": {
+    "tool": { "const": "get_incident" },
+    "tool_class": { "const": "READ_ONLY" },
+    "requires_approval": { "const": false },
+    "incident_id": { "type": "string", "pattern": "^inc_[A-Za-z0-9_-]+$" },
+    "service": { "type": "string" },
+    "alarm_name": { "type": "string" },
+    "severity": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+    "status": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "known_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["correlation_id"],
+      "properties": {
+        "correlation_id": { "type": "string" }
+      }
+    },
+    "redacted": { "const": true },
+    "truncated": { "type": "boolean" },
+    "untrusted": { "const": true }
+  }
+}

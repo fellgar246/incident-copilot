@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/get_incident.input.v1.json",
+  "title": "get_incident",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["incident_id"],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "minLength": 5,
+      "pattern": "^inc_[A-Za-z0-9_-]+$"
+    }
+  }
+}

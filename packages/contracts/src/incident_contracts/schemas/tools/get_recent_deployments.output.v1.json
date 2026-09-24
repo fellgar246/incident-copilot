@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/get_recent_deployments.output.v1.json",
+  "title": "get_recent_deployments_result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool",
+    "tool_class",
+    "requires_approval",
+    "service",
+    "lookback_hours",
+    "redacted",
+    "truncated",
+    "untrusted",
+    "items"
+  ],
+  "properties": {
+    "tool": { "const": "get_recent_deployments" },
+    "tool_class": { "const": "READ_ONLY" },
+    "requires_approval": { "const": false },
+    "service": { "type": "string" },
+    "lookback_hours": { "type": "integer", "minimum": 1 },
+    "redacted": { "type": "boolean" },
+    "truncated": { "type": "boolean" },
+    "untrusted": { "const": true },
+    "items": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["version", "commit_sha", "deployed_at", "change_summary"],
+        "properties": {
+          "version": { "type": "string" },
+          "commit_sha": { "type": "string" },
+          "deployed_at": { "type": "string", "format": "date-time" },
+          "change_summary": { "type": "string" }
+        }
+      }
+    }
+  }
+}

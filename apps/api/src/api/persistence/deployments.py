@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from incident_contracts.models import Deployment
 
 
@@ -19,3 +21,7 @@ class InMemoryDeploymentRepository:
             item.model_copy(deep=True) for item in self._items.values() if item.service == service
         ]
         return sorted(found, key=lambda item: item.deployed_at, reverse=True)
+
+    def query(self, *, service: str, since: datetime, limit: int) -> list[Deployment]:
+        matched = [item for item in self.list_for_service(service) if item.deployed_at >= since]
+        return matched[:limit]

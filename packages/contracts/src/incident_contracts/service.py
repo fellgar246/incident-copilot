@@ -56,6 +56,37 @@ class IncidentService:
     def events(self, incident_id: str) -> list[IncidentEvent]:
         return self._repo.list_events(incident_id)
 
+    def record_tool_called(
+        self,
+        incident_id: str,
+        *,
+        actor: str,
+        at: datetime,
+        event_id: str,
+        payload: dict[str, object],
+    ) -> IncidentEvent:
+        """Append a TOOL_CALLED timeline row. Status does not change."""
+        incident = self.get(incident_id)
+        event = IncidentEvent(
+            event_id=event_id,
+            incident_id=incident_id,
+            event_type=EventType.TOOL_CALLED,
+            timestamp=at,
+            actor=actor,
+            payload=payload,
+            from_status=incident.status,
+            to_status=incident.status,
+        )
+        if not self._repo.event_exists(event_id):
+            self._repo.append_event(event)
+        stored = next(
+            (item for item in self._repo.list_events(incident_id) if item.event_id == event_id),
+            None,
+        )
+        if stored is None:
+            raise RuntimeError(f"tool call event was not stored: {event_id}")
+        return stored
+
     def list_incidents(
         self,
         *,

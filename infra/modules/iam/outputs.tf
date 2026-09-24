@@ -23,6 +23,26 @@ output "cloudwatch_read_tool_role_arn" {
   value       = aws_iam_role.cloudwatch_read_tool.arn
 }
 
+output "agentcore_runtime_role_arn" {
+  description = "ARN of agentcore-runtime-role."
+  value       = aws_iam_role.agentcore_runtime.arn
+}
+
+output "agentcore_runtime_role_name" {
+  description = "Name of agentcore-runtime-role."
+  value       = aws_iam_role.agentcore_runtime.name
+}
+
+output "agentcore_gateway_role_arn" {
+  description = "ARN of agentcore-gateway-role."
+  value       = aws_iam_role.agentcore_gateway.arn
+}
+
+output "agentcore_gateway_role_name" {
+  description = "Name of agentcore-gateway-role."
+  value       = aws_iam_role.agentcore_gateway.name
+}
+
 output "cloudwatch_read_tool_role_name" {
   description = "Name of cloudwatch-read-tool-role."
   value       = aws_iam_role.cloudwatch_read_tool.name

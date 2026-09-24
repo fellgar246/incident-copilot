@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/query_metrics.output.v1.json",
+  "title": "query_metrics_result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool",
+    "tool_class",
+    "requires_approval",
+    "service",
+    "metric",
+    "window_minutes",
+    "redacted",
+    "truncated",
+    "untrusted",
+    "items"
+  ],
+  "properties": {
+    "tool": { "const": "query_metrics" },
+    "tool_class": { "const": "READ_ONLY" },
+    "requires_approval": { "const": false },
+    "service": { "type": "string" },
+    "metric": {
+      "type": "string",
+      "enum": [
+        "error_rate",
+        "request_count",
+        "latency_p95",
+        "throttles",
+        "duration",
+        "custom_health"
+      ]
+    },
+    "window_minutes": { "type": "integer", "minimum": 1 },
+    "redacted": { "type": "boolean" },
+    "truncated": { "type": "boolean" },
+    "untrusted": { "const": true },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["timestamp", "name", "value", "unit"],
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "name": { "type": "string" },
+          "value": { "type": "number" },
+          "unit": { "type": "string" }
+        }
+      }
+    }
+  }
+}

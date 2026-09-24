@@ -86,6 +86,98 @@ resource "aws_iam_role" "investigation_worker" {
   description        = "investigation-worker-role: DynamoDB writes and SQS reads for incident ingest."
 }
 
+data "aws_iam_policy_document" "agentcore_runtime_assume" {
+  statement {
+    sid     = "AgentCoreRuntimeAssume"
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["bedrock-agentcore.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "agentcore_runtime" {
+  name               = "${var.project}-${var.environment}-agentcore-runtime"
+  assume_role_policy = data.aws_iam_policy_document.agentcore_runtime_assume.json
+  description        = "agentcore-runtime-role: invoke one Bedrock model and read or write incident items."
+}
+
+data "aws_iam_policy_document" "agentcore_runtime" {
+  statement {
+    sid       = "InvokeInvestigationModel"
+    effect    = "Allow"
+    actions   = ["bedrock:InvokeModel"]
+    resources = ["arn:aws:bedrock:${var.aws_region}::foundation-model/${var.bedrock_model_id}"]
+  }
+
+  dynamic "statement" {
+    for_each = var.incidents_table_arn == "" ? [] : [var.incidents_table_arn]
+    content {
+      sid    = "IncidentItems"
+      effect = "Allow"
+      actions = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+      ]
+      resources = [statement.value, "${statement.value}/index/*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.deployments_table_arn == "" ? [] : [var.deployments_table_arn]
+    content {
+      sid       = "ReadDeployments"
+      effect    = "Allow"
+      actions   = ["dynamodb:GetItem", "dynamodb:Query"]
+      resources = [statement.value, "${statement.value}/index/*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "agentcore_runtime" {
+  name   = "agentcore-runtime"
+  role   = aws_iam_role.agentcore_runtime.id
+  policy = data.aws_iam_policy_document.agentcore_runtime.json
+}
+
+resource "aws_iam_role" "agentcore_gateway" {
+  name               = "${var.project}-${var.environment}-agentcore-gateway"
+  assume_role_policy = data.aws_iam_policy_document.agentcore_runtime_assume.json
+  description        = "agentcore-gateway-role: read-only scopes for the four registered tools."
+}
+
+data "aws_iam_policy_document" "agentcore_gateway" {
+  dynamic "statement" {
+    for_each = var.incidents_table_arn == "" ? [] : [var.incidents_table_arn]
+    content {
+      sid       = "GetIncident"
+      effect    = "Allow"
+      actions   = ["dynamodb:GetItem"]
+      resources = [statement.value]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.deployments_table_arn == "" ? [] : [var.deployments_table_arn]
+    content {
+      sid       = "ReadDeployments"
+      effect    = "Allow"
+      actions   = ["dynamodb:GetItem", "dynamodb:Query"]
+      resources = [statement.value, "${statement.value}/index/*"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "agentcore_gateway" {
+  name   = "agentcore-gateway-tools"
+  role   = aws_iam_role.agentcore_gateway.id
+  policy = data.aws_iam_policy_document.agentcore_gateway.json
+}
+
 resource "aws_iam_role" "cloudwatch_read_tool" {
   name               = "${var.project}-${var.environment}-cloudwatch-read-tool"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json

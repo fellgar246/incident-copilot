@@ -88,3 +88,9 @@ resource "aws_iam_role_policy" "cloudwatch_read_tool" {
   role   = var.cloudwatch_read_tool_role_name
   policy = data.aws_iam_policy_document.cloudwatch_read.json
 }
+
+resource "aws_iam_role_policy" "gateway_cloudwatch_read" {
+  name   = "gateway-cloudwatch-read"
+  role   = var.gateway_role_name
+  policy = data.aws_iam_policy_document.cloudwatch_read.json
+}

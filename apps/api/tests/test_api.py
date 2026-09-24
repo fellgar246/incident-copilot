@@ -123,9 +123,29 @@ def test_invalid_payload_is_422(client: TestClient) -> None:
 
 
 def test_unimplemented_routes_are_501(client: TestClient) -> None:
-    assert client.post("/incidents/inc_x/investigate").status_code == 501
+    assert client.post("/incidents/inc_x/approve").status_code == 501
     assert client.get("/metrics/costs").status_code == 501
     assert client.get("/evaluations").status_code == 501
+
+
+def test_investigate_is_idempotent_and_lists_runs(client: TestClient) -> None:
+    created = client.post(
+        "/incidents/simulate",
+        json={"scenario": ScenarioId.DEPLOYMENT_REGRESSION.value, "seed": "inv"},
+    )
+    incident_id = created.json()["incident_id"]
+    headers = {"Idempotency-Key": "investigate-1"}
+    first = client.post(f"/incidents/{incident_id}/investigate", headers=headers)
+    second = client.post(f"/incidents/{incident_id}/investigate", headers=headers)
+    assert first.status_code == 201
+    assert second.status_code == 200
+    assert first.json()["agent_run_id"] == second.json()["agent_run_id"]
+    assert first.json()["input_tokens"] > 0
+    runs = client.get(f"/incidents/{incident_id}/agent-runs")
+    assert runs.status_code == 200
+    assert len(runs.json()) == 1
+    fetched = client.get(f"/incidents/{incident_id}")
+    assert fetched.json()["status"] == "DIAGNOSED"
 
 
 def test_daily_quota_blocks_new_incidents_not_replays(

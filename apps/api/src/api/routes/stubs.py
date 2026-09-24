@@ -11,11 +11,6 @@ def _not_implemented() -> None:
     raise HTTPException(status_code=501, detail="not implemented yet")
 
 
-@router.post("/incidents/{id}/investigate", status_code=501)
-def investigate_incident(id: str) -> None:
-    _not_implemented()
-
-
 @router.post("/incidents/{id}/approve", status_code=501)
 def approve_incident(id: str) -> None:
     _not_implemented()
@@ -28,11 +23,6 @@ def reject_incident(id: str) -> None:
 
 @router.post("/incidents/{id}/remediate", status_code=501)
 def remediate_incident(id: str) -> None:
-    _not_implemented()
-
-
-@router.get("/incidents/{id}/agent-runs", status_code=501)
-def list_agent_runs(id: str) -> None:
     _not_implemented()
 
 

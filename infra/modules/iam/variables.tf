@@ -26,6 +26,30 @@ variable "github_repo" {
   default     = "ai-incident-copilot"
 }
 
+variable "aws_region" {
+  type        = string
+  description = "Region used in the runtime role's model ARN."
+  default     = "us-east-1"
+}
+
+variable "incidents_table_arn" {
+  type        = string
+  description = "Incidents table the runtime may read and write."
+  default     = ""
+}
+
+variable "deployments_table_arn" {
+  type        = string
+  description = "Deployments table the runtime may read."
+  default     = ""
+}
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Foundation model the runtime may invoke."
+  default     = "amazon.nova-micro-v1:0"
+}
+
 variable "github_oidc_thumbprints" {
   type        = list(string)
   description = "GitHub Actions OIDC thumbprints. AWS still requires at least one value."
