@@ -30,4 +30,4 @@ An investigation has to explain its own cost. Token totals on an agent run are n
 
 ## Review date
 
-Revisit when AgentCore Observability is enabled in the dev account, or when evaluation scores start writing `evaluation_score`.
+Revisit when AgentCore Observability is enabled in the dev account. Sampled investigations already write `evaluation_score`.

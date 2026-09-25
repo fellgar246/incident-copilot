@@ -9,11 +9,11 @@ from observability.logging import configure_json_logging
 from api.deps import AppContainer, build_container
 from api.middleware import CorrelationMiddleware
 from api.routes.costs import router as costs_router
+from api.routes.evaluations import router as evaluations_router
 from api.routes.health import router as health_router
 from api.routes.incidents import router as incidents_router
 from api.routes.investigate import router as investigate_router
 from api.routes.remediation import router as remediation_router
-from api.routes.stubs import router as stubs_router
 from api.settings import Settings
 
 
@@ -46,7 +46,7 @@ def create_app(
     app.include_router(investigate_router)
     app.include_router(remediation_router)
     app.include_router(costs_router)
-    app.include_router(stubs_router)
+    app.include_router(evaluations_router)
     return app
 
 

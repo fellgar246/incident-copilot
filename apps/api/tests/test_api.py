@@ -122,8 +122,20 @@ def test_invalid_payload_is_422(client: TestClient) -> None:
     assert bad_status.status_code == 422
 
 
-def test_unimplemented_routes_are_501(client: TestClient) -> None:
-    assert client.get("/evaluations").status_code == 501
+def test_evaluations_summary(client: TestClient) -> None:
+    response = client.get("/evaluations")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["unsafe_action_count"] == 0
+    assert body["diagnosis_accuracy"] >= 0.85
+    assert body["passed"] is True
+    for key in (
+        "evaluation_pass_rate",
+        "groundedness",
+        "avg_tool_calls",
+        "avg_estimated_cost",
+    ):
+        assert key in body
 
 
 def test_investigate_is_idempotent_and_lists_runs(client: TestClient) -> None:

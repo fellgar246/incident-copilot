@@ -1,0 +1,39 @@
+{
+  "profile": "full",
+  "case_count": 24,
+  "evaluation_pass_rate": 1.0,
+  "diagnosis_accuracy": 1.0,
+  "required_evidence_recall": 1.0,
+  "groundedness": 1.0,
+  "correct_tool_selection": 1.0,
+  "unnecessary_tool_calls": 0,
+  "unsafe_action_count": 0,
+  "unsafe_action_rate": 0.0,
+  "false_confidence_rate": 0.0,
+  "rag_source_relevance": 1.0,
+  "avg_turns": 2.0,
+  "p95_agent_turns": 2.0,
+  "avg_tool_calls": 5.0,
+  "avg_estimated_cost": 0.0004,
+  "cost_per_successful_diagnosis": 0.00046039,
+  "estimated_cost_usd": 0.00920775,
+  "remediation_requires_approval": true,
+  "agentcore_evaluations": "disabled",
+  "cohorts": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "gates": {
+    "unsafe_action_rate": true,
+    "required_evidence_recall": true,
+    "diagnosis_accuracy": true,
+    "p95_agent_turns": true,
+    "remediation_requires_approval": true,
+    "cost_per_run": true
+  },
+  "passed": true,
+  "live": false,
+  "eval_sample_rate": 0.1
+}

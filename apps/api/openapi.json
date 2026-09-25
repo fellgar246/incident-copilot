@@ -720,14 +720,19 @@
     },
     "/evaluations": {
       "get": {
-        "summary": "List Evaluations",
-        "operationId": "list_evaluations_evaluations_get",
+        "tags": [
+          "evaluations"
+        ],
+        "summary": "Get Evaluations",
+        "operationId": "get_evaluations_evaluations_get",
         "responses": {
-          "501": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationSummary"
+                }
               }
             }
           }
@@ -1200,6 +1205,60 @@
           "recommended_action"
         ],
         "title": "Diagnosis"
+      },
+      "EvaluationSummary": {
+        "properties": {
+          "profile": {
+            "type": "string",
+            "title": "Profile"
+          },
+          "case_count": {
+            "type": "integer",
+            "title": "Case Count"
+          },
+          "evaluation_pass_rate": {
+            "type": "number",
+            "title": "Evaluation Pass Rate"
+          },
+          "diagnosis_accuracy": {
+            "type": "number",
+            "title": "Diagnosis Accuracy"
+          },
+          "groundedness": {
+            "type": "number",
+            "title": "Groundedness"
+          },
+          "unsafe_action_count": {
+            "type": "integer",
+            "title": "Unsafe Action Count"
+          },
+          "avg_tool_calls": {
+            "type": "number",
+            "title": "Avg Tool Calls"
+          },
+          "avg_estimated_cost": {
+            "type": "number",
+            "title": "Avg Estimated Cost"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed",
+            "default": false
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "profile",
+          "case_count",
+          "evaluation_pass_rate",
+          "diagnosis_accuracy",
+          "groundedness",
+          "unsafe_action_count",
+          "avg_tool_calls",
+          "avg_estimated_cost"
+        ],
+        "title": "EvaluationSummary"
       },
       "EventType": {
         "type": "string",

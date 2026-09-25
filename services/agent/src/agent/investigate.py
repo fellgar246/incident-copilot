@@ -22,8 +22,9 @@ from agent.bedrock import invocation_enabled
 from agent.loop import run_loop
 from agent.model import LanguageModel
 from agent.runs import AgentRunRecord, AgentRunStatus, AgentRunStore
+from agent.sample import record_sampled_evaluation
 from agent.session import session_from_quotas
-from agent.tools import DeploymentTool, LogTool, MetricTool, ToolDispatcher
+from agent.tools import DeploymentTool, KnowledgeTool, LogTool, MetricTool, ToolDispatcher
 
 ACTOR = ActorKind.AGENT.value
 
@@ -49,6 +50,7 @@ def investigate(
     logs: LogTool,
     metrics: MetricTool,
     deployments: DeploymentTool,
+    knowledge: KnowledgeTool | None = None,
     now: datetime | None = None,
 ) -> AgentRunRecord:
     """Launch one investigation. The same idempotency key returns the existing run."""
@@ -132,6 +134,7 @@ def investigate(
         observed_at=incident.started_at,
         audit=service,
         agent_run_id=run_id,
+        knowledge=knowledge,
         remediation=RemediationTools(service),
     )
     started = time.monotonic()
@@ -192,6 +195,12 @@ def investigate(
     )
     runs.save(record)
     _record_run_metrics(record)
+    record_sampled_evaluation(
+        incident_id=incident_id,
+        rate=quotas.eval_sample_rate,
+        diagnosis=result.diagnosis,
+        cost_stopped=result.stop_reason is not None,
+    )
     return record
 
 

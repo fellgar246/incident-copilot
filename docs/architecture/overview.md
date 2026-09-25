@@ -130,7 +130,7 @@ GET    /metrics/costs
 GET    /evaluations
 ```
 
-HTTP handlers for health, incident reads, simulate, investigate, approve / reject / remediate, and cost metrics live in `apps/api`. Evaluations still return 501. Mutable calls require `Idempotency-Key`. A simulate replay returns 200 with the existing incident. `POST /incidents/{id}/remediate` without a valid, unexpired approval returns **403** with `decision: DENIED`.
+HTTP handlers for health, incident reads, simulate, investigate, approve / reject / remediate, cost metrics, and evaluations live in `apps/api`. `GET /evaluations` reads the latest offline summary. Mutable calls require `Idempotency-Key`. A simulate replay returns 200 with the existing incident. `POST /incidents/{id}/remediate` without a valid, unexpired approval returns **403** with `decision: DENIED`.
 
 `GET /incidents/{id}/agent-runs` returns each run plus the reconstructed span tree and the per-incident series `EstimatedCostPerIncident`, `TokensPerIncident`, `ToolCallsPerIncident`, `RuntimePerIncident`, and `RagCallsPerIncident`. `GET /metrics/costs` returns those rollups for every incident together with system counters (`incidents_total`, `incidents_by_status`, `investigation_latency`, `tool_error_rate`, `queue_age`, `dlq_messages`) and AI counters (`llm_calls`, tokens, turns, tool calls, RAG calls, confidence, `evaluation_score`, `estimated_cost`). Span names are `incident.received`, `investigation.start`, `llm.reasoning`, `llm.diagnosis`, `tool.{name}`, `remediation.proposed`, and `remediation.executed`. Trace log groups use `LOG_RETENTION_DAYS` (7 in dev). Set `OTEL_EXPORTER_OTLP_ENDPOINT` to also export those spans for AgentCore Observability.
 

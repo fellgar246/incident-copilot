@@ -21,7 +21,7 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, and per-incident traces plus cost metrics. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
+Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, per-incident traces plus cost metrics, and an offline evaluation suite with CI quality gates. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
 
 ## Repository layout
 
@@ -31,7 +31,7 @@ apps/api                 FastAPI (health, incidents, simulate)
 services/                worker, agent, tools, simulator
 packages/                contracts, observability, cost-guardrails
 docs/                    architecture, ADRs, runbooks, postmortems, services
-evals/                   quality gates (placeholder)
+evals/                   versioned cases, gates, and the latest run summary
 fixtures/incidents/      golden simulator snapshots
 infra/                   Terraform modules + environments/dev
 ```
@@ -77,7 +77,7 @@ make run-api
 #      {"scenario":"deployment_regression","seed":"demo"}
 ```
 
-`POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Approve, reject, and remediate also require `Idempotency-Key`. Remediate without a grant is **403**. Evaluations still respond **501**. `GET /metrics/costs` returns the system and AI series, including estimated USD per incident. Logs are JSON and include `request_id`, `incident_id`, `agent_run_id`, `correlation_id`, and `approval_id`. They never include bearer tokens, AWS credentials, full prompts, or tool secrets.
+`POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Approve, reject, and remediate also require `Idempotency-Key`. Remediate without a grant is **403**. `GET /evaluations` returns the latest offline run: pass rate, diagnosis accuracy, groundedness, unsafe action count, average tool calls, and average estimated cost. `GET /metrics/costs` returns the system and AI series, including estimated USD per incident. Logs are JSON and include `request_id`, `incident_id`, `agent_run_id`, `correlation_id`, and `approval_id`. They never include bearer tokens, AWS credentials, full prompts, or tool secrets.
 
 Set `INCIDENT_REPOSITORY=dynamodb` (and table names from `terraform output`) to point the process at AWS instead of the in-memory store.
 
@@ -186,7 +186,9 @@ ci-deploy-role
 | `make terraform-validate` | `terraform init -backend=false` + validate |
 | `make run-api` | Uvicorn for `apps/api` |
 | `make openapi` | Refresh `apps/api/openapi.json` |
-| `make ci` | All of the above except fmt |
+| `make eval` | Offline PR evaluation subset |
+| `make eval-full` | Full offline evaluation suite |
+| `make ci` | Lint, typecheck, test, PR eval gates, terraform-validate |
 
 ## Docs
 
@@ -195,6 +197,7 @@ ci-deploy-role
 - [ADR-003 HTTP API and DynamoDB persistence](docs/adrs/ADR-003-api-and-persistence.md)
 - [ADR-004 Event-driven incident ingest](docs/adrs/ADR-004-event-ingestion.md)
 - [ADR-005 Telemetry evidence tools](docs/adrs/ADR-005-telemetry-tools.md)
+- [ADR-009 Offline evaluations](docs/adrs/ADR-009-evaluations.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Demo script](docs/architecture/demo.md)
 - [Account bootstrap](docs/runbooks/account-bootstrap.md)
