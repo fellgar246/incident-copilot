@@ -21,12 +21,12 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, per-incident traces plus cost metrics, and an offline evaluation suite with CI quality gates. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
+Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, per-incident traces plus cost metrics, an offline evaluation suite with CI quality gates, and a static dashboard for the demo path. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
 
 ## Repository layout
 
 ```text
-apps/web                 Next.js dashboard (placeholder)
+apps/web                 Next.js dashboard (static export)
 apps/api                 FastAPI (health, incidents, simulate)
 services/                worker, agent, tools, simulator
 packages/                contracts, observability, cost-guardrails
@@ -56,6 +56,31 @@ make ci
 ```
 
 Never commit `.env`, `*.tfvars`, `backend.hcl`, Terraform state, or AWS credentials. `.env.example` is the source of truth for quota keys.
+
+## Dashboard demo
+
+The interviewer path runs in the UI. AWS Console is not required to read the incident.
+
+```bash
+source .venv/bin/activate
+make run-api
+# second terminal
+npm run dev -w web
+```
+
+Open http://localhost:3000/incidents. With an empty store the page shows **No incidents yet**. **Run simulation** posts `deployment_regression`. The other scenarios are in the secondary menu.
+
+On the incident page: **Investigate**, then open Investigation, Evidence, and Retrieved Knowledge. **Execute remediation** before approval shows **Denied — missing valid approval** and a red timeline row. **Approve** (actor `human:demo`) then **Execute remediation** moves the incident to `RESOLVED`. Cost and Trace show tokens, tool calls, estimated USD, and `agent_run_id`. Evaluations and Settings / Costs are in the left nav. Cost limits are read-only.
+
+`/incidents/[id]` is exported as a static shell (`/incidents/_/`). CloudFront rewrites real ids onto that shell, so the dashboard stays on S3 + CloudFront with no Lambda. After `terraform apply`:
+
+```bash
+npm run build -w web
+aws s3 sync apps/web/out "s3://$(terraform -chdir=infra/environments/dev output -raw web_bucket_name)" --delete
+aws cloudfront create-invalidation --distribution-id "$(terraform -chdir=infra/environments/dev output -raw web_distribution_id)" --paths "/*"
+```
+
+Set `NEXT_PUBLIC_API_BASE_URL` to the `api_endpoint` output before the production build, and add the CloudFront origin to `CORS_ORIGINS`.
 
 ## Domain simulator (no AWS)
 

@@ -37,6 +37,12 @@ export const EVALUATION_METRICS = [
   "avg_estimated_cost",
 ] as const;
 
+export const DEMO_SERVICES = [
+  "payments-api",
+  "orders-api",
+  "notifications-worker",
+] as const;
+
 export const INVESTIGATION_TOOLS = [
   "query_logs",
   "query_metrics",

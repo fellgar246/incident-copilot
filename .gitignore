@@ -33,6 +33,8 @@ node_modules/
 .npm
 .next/
 out/
+test-results/
+playwright-report/
 .turbo/
 *.tsbuildinfo
 

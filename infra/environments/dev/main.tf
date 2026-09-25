@@ -95,6 +95,14 @@ module "observability" {
   worker_role_name   = module.iam.investigation_worker_role_name
 }
 
+module "frontend" {
+  source = "../../modules/frontend"
+
+  project     = var.project
+  environment = var.environment
+  owner       = var.owner
+}
+
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
@@ -224,4 +232,16 @@ output "trace_log_group_name" {
 
 output "observability_dashboard_name" {
   value = module.cloudwatch.dashboard_name
+}
+
+output "web_bucket_name" {
+  value = module.frontend.bucket_name
+}
+
+output "web_distribution_id" {
+  value = module.frontend.distribution_id
+}
+
+output "dashboard_url" {
+  value = module.frontend.dashboard_url
 }

@@ -159,7 +159,7 @@ def test_investigate_is_idempotent_and_lists_runs(client: TestClient) -> None:
     assert body["TokensPerIncident"] > 0
     assert "tool.query_logs" in _span_names(body["trace"])
     fetched = client.get(f"/incidents/{incident_id}")
-    assert fetched.json()["status"] == "DIAGNOSED"
+    assert fetched.json()["status"] == "AWAITING_APPROVAL"
     costs = client.get("/metrics/costs")
     assert costs.status_code == 200
     series = costs.json()["series"]

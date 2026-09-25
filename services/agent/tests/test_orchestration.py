@@ -120,7 +120,11 @@ def test_scripted_model_diagnoses_fixtures(
     assert record.status.value == "DIAGNOSED"
     assert record.tool_calls >= 3
     assert record.estimated_cost_usd >= 0
-    assert incident.status is IncidentStatus.DIAGNOSED
+    if scenario is ScenarioId.DEPLOYMENT_REGRESSION:
+        assert incident.status is IncidentStatus.AWAITING_APPROVAL
+        assert incident.approval is not None
+    else:
+        assert incident.status is IncidentStatus.DIAGNOSED
     assert fragment in incident.diagnosis.probable_cause
     assert source_id in incident.diagnosis.retrieved_sources
     assert "delete_resource" not in incident.diagnosis.recommended_action
@@ -313,5 +317,5 @@ def test_runtime_entrypoint_updates_dynamodb(monkeypatch: pytest.MonkeyPatch) ->
         assert result["runtime_mode"] == "microvm"
         stored = repo.get(fixture.incident.incident_id)
         assert stored is not None
-        assert stored.status is IncidentStatus.DIAGNOSED
+        assert stored.status is IncidentStatus.AWAITING_APPROVAL
         assert stored.diagnosis is not None

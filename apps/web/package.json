@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "next": "^15.5.3",
@@ -19,6 +20,7 @@
     "eslint": "^9.35.0",
     "eslint-config-next": "^15.5.3",
     "@eslint/eslintrc": "^3.3.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "@playwright/test": "^1.55.0"
   }
 }

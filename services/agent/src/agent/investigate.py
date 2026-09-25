@@ -170,6 +170,7 @@ def investigate(
             }
         )
         _save_incident(service, service_incident)
+        _propose_when_required(service, incident_id, result.diagnosis, at=finished)
         status = AgentRunStatus.DIAGNOSED
         stop_reason = None
     elif result.stop_reason:
@@ -202,6 +203,30 @@ def investigate(
         cost_stopped=result.stop_reason is not None,
     )
     return record
+
+
+def _propose_when_required(
+    service: IncidentService,
+    incident_id: str,
+    diagnosis: object,
+    *,
+    at: datetime,
+) -> None:
+    """Record a SAFE_WRITE proposal when the diagnosis asks for a simulated rollback."""
+    requires = bool(getattr(diagnosis, "requires_approval", False))
+    action = str(getattr(diagnosis, "recommended_action", ""))
+    cause = str(getattr(diagnosis, "probable_cause", "rollback"))
+    if not requires or "rollback" not in action.lower():
+        return
+    RemediationTools(service).request_remediation(
+        {
+            "incident_id": incident_id,
+            "action": "rollback_simulated",
+            "rationale": cause[:500],
+        },
+        actor=ACTOR,
+        at=at,
+    )
 
 
 def _enter_investigating(
