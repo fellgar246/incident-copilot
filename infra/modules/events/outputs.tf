@@ -13,6 +13,16 @@ output "event_source" {
   value       = var.event_source
 }
 
+output "queue_name" {
+  description = "Name of the ingest SQS queue."
+  value       = aws_sqs_queue.detected.name
+}
+
+output "dlq_name" {
+  description = "Name of the ingest DLQ."
+  value       = aws_sqs_queue.dlq.name
+}
+
 output "queue_url" {
   description = "URL of the ingest SQS queue."
   value       = aws_sqs_queue.detected.url

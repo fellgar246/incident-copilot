@@ -23,6 +23,12 @@ class InvalidApprovalError(DomainError):
     """Raised when approval is missing, mismatched, or expired."""
 
 
+class RemediationDeniedError(DomainError):
+    """Raised when a remediation would run without a valid grant. Decision is DENIED."""
+
+    decision = "DENIED"
+
+
 class InvalidActorError(DomainError):
     """Raised when an event actor is not system, agent, or human:{id}."""
 

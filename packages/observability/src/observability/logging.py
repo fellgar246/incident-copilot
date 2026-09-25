@@ -15,6 +15,8 @@ from observability.correlation import new_correlation_id
 _REQUEST_ID: ContextVar[str | None] = ContextVar("request_id", default=None)
 _CORRELATION_ID: ContextVar[str | None] = ContextVar("correlation_id", default=None)
 _INCIDENT_ID: ContextVar[str | None] = ContextVar("incident_id", default=None)
+_AGENT_RUN_ID: ContextVar[str | None] = ContextVar("agent_run_id", default=None)
+_APPROVAL_ID: ContextVar[str | None] = ContextVar("approval_id", default=None)
 _EVENT_ID: ContextVar[str | None] = ContextVar("event_id", default=None)
 
 SENSITIVE_KEYS = frozenset(
@@ -35,6 +37,13 @@ SENSITIVE_KEYS = frozenset(
         "refresh_token",
         "bearer",
         "private_key",
+        "prompt",
+        "system_prompt",
+        "messages",
+        "tool_secret",
+        "api_key",
+        "secret_access_key",
+        "session_token",
     }
 )
 
@@ -49,6 +58,8 @@ def bind_context(
     request_id: str | None = None,
     correlation_id: str | None = None,
     incident_id: str | None = None,
+    agent_run_id: str | None = None,
+    approval_id: str | None = None,
     event_id: str | None = None,
 ) -> None:
     """Attach identifiers to the current task so later log records inherit them."""
@@ -58,6 +69,10 @@ def bind_context(
         _CORRELATION_ID.set(correlation_id)
     if incident_id is not None:
         _INCIDENT_ID.set(incident_id)
+    if agent_run_id is not None:
+        _AGENT_RUN_ID.set(agent_run_id)
+    if approval_id is not None:
+        _APPROVAL_ID.set(approval_id)
     if event_id is not None:
         _EVENT_ID.set(event_id)
 
@@ -68,6 +83,8 @@ def current_context() -> dict[str, str]:
     request_id = _REQUEST_ID.get()
     correlation_id = _CORRELATION_ID.get()
     incident_id = _INCIDENT_ID.get()
+    agent_run_id = _AGENT_RUN_ID.get()
+    approval_id = _APPROVAL_ID.get()
     event_id = _EVENT_ID.get()
     if request_id:
         payload["request_id"] = request_id
@@ -75,6 +92,10 @@ def current_context() -> dict[str, str]:
         payload["correlation_id"] = correlation_id
     if incident_id:
         payload["incident_id"] = incident_id
+    if agent_run_id:
+        payload["agent_run_id"] = agent_run_id
+    if approval_id:
+        payload["approval_id"] = approval_id
     if event_id:
         payload["event_id"] = event_id
     return payload
@@ -84,6 +105,8 @@ def clear_context() -> None:
     _REQUEST_ID.set(None)
     _CORRELATION_ID.set(None)
     _INCIDENT_ID.set(None)
+    _AGENT_RUN_ID.set(None)
+    _APPROVAL_ID.set(None)
     _EVENT_ID.set(None)
 
 
@@ -116,7 +139,14 @@ class JsonLogFormatter(logging.Formatter):
             "message": self._safe_message(record),
         }
         payload.update(current_context())
-        for field in ("request_id", "incident_id", "correlation_id", "event_id"):
+        for field in (
+            "request_id",
+            "incident_id",
+            "agent_run_id",
+            "correlation_id",
+            "approval_id",
+            "event_id",
+        ):
             value = getattr(record, field, None)
             if value:
                 payload[field] = value

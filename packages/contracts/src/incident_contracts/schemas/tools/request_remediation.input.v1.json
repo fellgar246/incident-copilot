@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/request_remediation.input.v1.json",
+  "title": "request_remediation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["incident_id", "action", "rationale"],
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "pattern": "^inc_[A-Za-z0-9_-]+$"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["rollback_simulated"]
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    }
+  }
+}

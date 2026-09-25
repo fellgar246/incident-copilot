@@ -9,6 +9,7 @@ from datetime import datetime
 from cost_guardrails.exceptions import QuotaExceededError
 from cost_guardrails.quotas import AppQuotas
 from incident_contracts.models import Diagnosis
+from observability.tracing import SPAN_LLM_DIAGNOSIS, SPAN_LLM_REASONING, start_span
 
 from agent.budget import RunBudget
 from agent.model import ChatMessage, LanguageModel
@@ -48,11 +49,16 @@ def run_loop(
     try:
         while True:
             budget.ensure_can_continue()
-            turn = model.complete(
-                system_prompt=SYSTEM_PROMPT,
-                messages=messages,
-                max_output_tokens=quotas.max_model_output_tokens_per_call,
-            )
+            with start_span(SPAN_LLM_REASONING, incident_id=incident_id) as span:
+                turn = model.complete(
+                    system_prompt=SYSTEM_PROMPT,
+                    messages=messages,
+                    max_output_tokens=quotas.max_model_output_tokens_per_call,
+                )
+                if turn.diagnosis_text:
+                    span.update_name(SPAN_LLM_DIAGNOSIS)
+                span.set_attribute("input_tokens", turn.input_tokens)
+                span.set_attribute("output_tokens", turn.output_tokens)
             budget.add_model_usage(turn.input_tokens, turn.output_tokens)
             if turn.diagnosis_text:
                 diagnosis = parse_diagnosis(

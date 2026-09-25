@@ -23,7 +23,11 @@ GATEWAY_TOOL_NAMES: tuple[str, ...] = (
     "query_metrics",
     "get_recent_deployments",
     "search_runbooks",
+    "request_remediation",
 )
+
+# execute_remediation is invoked by the API after a grant. It is not a gateway tool.
+AGENT_FORBIDDEN_TOOLS: frozenset[str] = frozenset({"execute_remediation"})
 
 _SCHEMA_DIR = "schemas/tools"
 
@@ -39,6 +43,7 @@ class ToolCalledV1(BaseModel):
         "query_metrics",
         "get_recent_deployments",
         "search_runbooks",
+        "request_remediation",
     ]
     ok: bool
     latency_ms: int = Field(ge=0)
@@ -48,7 +53,7 @@ class ToolCalledV1(BaseModel):
 
 @dataclass(frozen=True, slots=True)
 class GatewayTool:
-    """One read-only tool the agent may discover. IAM is a documented scope, not a SDK."""
+    """One tool the agent may discover. IAM is a documented scope, not a SDK."""
 
     name: str
     description: str
@@ -59,8 +64,12 @@ class GatewayTool:
     output_schema: dict[str, Any]
 
     def __post_init__(self) -> None:
-        if self.tool_class is not ToolClass.READ_ONLY:
-            raise ValueError(f"{self.name} must be READ_ONLY")
+        if self.name in AGENT_FORBIDDEN_TOOLS or self.tool_class is ToolClass.DESTRUCTIVE:
+            raise ValueError(f"{self.name} is not available to the agent")
+        if self.tool_class is ToolClass.SAFE_WRITE and self.name != "request_remediation":
+            raise ValueError(f"{self.name} is not a request-only safe write")
+        if self.tool_class is ToolClass.READ_ONLY and self.name == "request_remediation":
+            raise ValueError("request_remediation requires human approval")
         if self.timeout_seconds <= 0:
             raise ValueError(f"{self.name} timeout must be > 0")
 
@@ -79,7 +88,7 @@ def tool_called_schema() -> dict[str, Any]:
 
 
 def gateway_tools() -> tuple[GatewayTool, ...]:
-    """Return the only tools the agent may discover. Fewer than ten, all read-only."""
+    """Return the only tools the agent may discover. execute_remediation is absent."""
     if GATEWAY_SEARCH_ENABLED or WEB_SEARCH_ENABLED:
         raise RuntimeError("gateway search and web search must stay disabled")
     tools = (
@@ -133,6 +142,17 @@ def gateway_tools() -> tuple[GatewayTool, ...]:
             iam_scope="bedrock:Retrieve and s3:GetObject on the corpus bucket",
             input_schema=load_tool_schema("search_runbooks.input.v1.json"),
             output_schema=load_tool_schema("search_runbooks.output.v1.json"),
+        ),
+        GatewayTool(
+            name="request_remediation",
+            description=(
+                "Record a safe-write proposal and wait for a human. Does not change any resource."
+            ),
+            tool_class=ToolClass.SAFE_WRITE,
+            timeout_seconds=3.0,
+            iam_scope="remediation-tool-role: no execute; proposal write on the incident item only",
+            input_schema=load_tool_schema("request_remediation.input.v1.json"),
+            output_schema=load_tool_schema("request_remediation.output.v1.json"),
         ),
     )
     if len(tools) > MAX_GATEWAY_TOOLS:

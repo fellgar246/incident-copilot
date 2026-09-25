@@ -11,11 +11,26 @@ from deployments_tool.tools import DeploymentTools
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 from incident_contracts.errors import IncidentNotFoundError
 from incident_contracts.surface import IDEMPOTENCY_HEADER
+from observability.costs import summarize_incident
 from observability.logging import bind_context
+from observability.tracing import reconstruct_trace
+from pydantic import BaseModel, ConfigDict
 
 from api.deps import get_container, new_model
 
 router = APIRouter(tags=["incidents"])
+
+
+class AgentRunsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    runs: list[AgentRunRecord]
+    trace: dict[str, object]
+    EstimatedCostPerIncident: float
+    TokensPerIncident: int
+    ToolCallsPerIncident: int
+    RuntimePerIncident: int
+    RagCallsPerIncident: int
 
 
 @router.post(
@@ -65,14 +80,24 @@ def investigate_incident(
 
 @router.get(
     "/incidents/{id}/agent-runs",
-    response_model=list[AgentRunRecord],
+    response_model=AgentRunsResponse,
     responses={404: {"description": "incident not found"}},
 )
-def list_agent_runs(id: str, request: Request) -> list[AgentRunRecord]:
+def list_agent_runs(id: str, request: Request) -> AgentRunsResponse:
     container = get_container(request)
     bind_context(incident_id=id)
     try:
         container.service.get(id)
     except IncidentNotFoundError as exc:
         raise HTTPException(status_code=404, detail="incident not found") from exc
-    return container.runs.list_for_incident(id)
+    runs = container.runs.list_for_incident(id)
+    summary = summarize_incident(id, runs)
+    return AgentRunsResponse(
+        runs=runs,
+        trace=reconstruct_trace(id),
+        EstimatedCostPerIncident=float(summary["EstimatedCostPerIncident"]),
+        TokensPerIncident=int(summary["TokensPerIncident"]),
+        ToolCallsPerIncident=int(summary["ToolCallsPerIncident"]),
+        RuntimePerIncident=int(summary["RuntimePerIncident"]),
+        RagCallsPerIncident=int(summary["RagCallsPerIncident"]),
+    )

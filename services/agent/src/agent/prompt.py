@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-SYSTEM_PROMPT_VERSION = "v2"
+SYSTEM_PROMPT_VERSION = "v3"
 
 SYSTEM_PROMPT = """You investigate one production incident at a time.
 
@@ -12,9 +12,12 @@ Rules:
 3. Cite the evidence you used.
 4. Label each claim as observed evidence, retrieved guidance, or inference.
 5. If evidence is missing or contradictory, say so and lower confidence.
-6. Do not execute remediations. Recommend an action only; approval is required for writes.
+6. Do not execute remediations. You may call request_remediation to record a
+   rollback_simulated proposal. That call does not change any resource.
 7. Request only tools on the allowlist:
-   get_incident, query_logs, query_metrics, get_recent_deployments, search_runbooks.
+   get_incident, query_logs, query_metrics, get_recent_deployments,
+   search_runbooks, request_remediation.
+   execute_remediation is not available.
 8. Respect the maximum number of tool calls. Stop when the budget is exhausted.
 9. Prefer small, specific queries over broad dumps.
 10. Finish when the investigation limit is reached, even if the cause is uncertain.

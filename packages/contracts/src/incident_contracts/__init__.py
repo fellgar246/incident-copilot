@@ -26,6 +26,7 @@ from incident_contracts.errors import (
     InvalidActorError,
     InvalidApprovalError,
     InvalidIncidentEventError,
+    RemediationDeniedError,
     UnsupportedSchemaVersionError,
 )
 from incident_contracts.events import (
@@ -64,6 +65,7 @@ from incident_contracts.models import (
     IncidentFixture,
     LogSample,
     MetricSample,
+    Proposal,
     TelemetryBundle,
 )
 from incident_contracts.repository import IncidentRepository, InMemoryIncidentRepository
@@ -126,8 +128,10 @@ __all__ = [
     "InvalidIncidentEventError",
     "LogSample",
     "MetricSample",
+    "Proposal",
     "RejectIncidentRequest",
     "RemediateIncidentRequest",
+    "RemediationDeniedError",
     "ScenarioId",
     "Severity",
     "SimulateIncidentRequest",

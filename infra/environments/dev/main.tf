@@ -85,6 +85,27 @@ module "api" {
   event_source           = module.events.event_source
 }
 
+module "observability" {
+  source = "../../modules/observability"
+
+  project            = var.project
+  environment        = var.environment
+  log_retention_days = var.log_retention_days
+  api_role_name      = module.api.api_role_name
+  worker_role_name   = module.iam.investigation_worker_role_name
+}
+
+module "cloudwatch" {
+  source = "../../modules/cloudwatch"
+
+  project           = var.project
+  environment       = var.environment
+  aws_region        = var.aws_region
+  metric_namespace  = module.observability.metric_namespace
+  ingest_queue_name = module.events.queue_name
+  dlq_name          = module.events.dlq_name
+}
+
 output "aws_region" {
   value = var.aws_region
 }
@@ -195,4 +216,12 @@ output "metric_namespace" {
 
 output "demo_log_group_names" {
   value = module.telemetry.log_group_names
+}
+
+output "trace_log_group_name" {
+  value = module.observability.trace_log_group_name
+}
+
+output "observability_dashboard_name" {
+  value = module.cloudwatch.dashboard_name
 }

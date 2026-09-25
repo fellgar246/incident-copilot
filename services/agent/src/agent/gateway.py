@@ -24,6 +24,8 @@ from incident_contracts.gateway import (
 )
 from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 from observability.logging import redact
+from observability.metrics import record_tool_result
+from observability.tracing import start_span, tool_span_name
 
 LOGGER = logging.getLogger("agent.gateway")
 MAX_OUTPUT_BYTES = 12 * 1024
@@ -88,6 +90,21 @@ class GatewayClient:
         calls_used: int,
     ) -> dict[str, Any]:
         started = time.monotonic()
+        with start_span(
+            tool_span_name(name),
+            agent_run_id=self._agent_run_id,
+            incident_id=self._incident_id,
+        ):
+            return self._invoke(name, arguments, calls_used=calls_used, started=started)
+
+    def _invoke(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        calls_used: int,
+        started: float,
+    ) -> dict[str, Any]:
         if name not in self._handlers:
             self._log(
                 name,
@@ -156,11 +173,11 @@ class GatewayClient:
         return payload
 
     def _reject_cross_incident(self, name: str, arguments: dict[str, Any]) -> None:
-        if name != "get_incident":
+        if name not in {"get_incident", "request_remediation"}:
             return
         requested = arguments.get("incident_id")
         if requested != self._incident_id:
-            raise GatewayError("get_incident is scoped to the incident under investigation")
+            raise GatewayError(f"{name} is scoped to the incident under investigation")
 
     def _finish(
         self,
@@ -187,6 +204,7 @@ class GatewayClient:
             event_id=f"evt_{uuid.uuid4().hex[:16]}",
             payload=body.model_dump(),
         )
+        record_tool_result(ok=ok)
         self._log(tool, arguments, latency_ms, error=error, truncated=truncated)
 
     def _log(

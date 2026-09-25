@@ -47,3 +47,13 @@ output "cloudwatch_read_tool_role_name" {
   description = "Name of cloudwatch-read-tool-role."
   value       = aws_iam_role.cloudwatch_read_tool.name
 }
+
+output "remediation_tool_role_arn" {
+  description = "ARN of remediation-tool-role."
+  value       = aws_iam_role.remediation_tool.arn
+}
+
+output "remediation_tool_role_name" {
+  description = "Name of remediation-tool-role."
+  value       = aws_iam_role.remediation_tool.name
+}

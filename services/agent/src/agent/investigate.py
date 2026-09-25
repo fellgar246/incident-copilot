@@ -13,6 +13,10 @@ from incident_contracts.enums import ActorKind, IncidentStatus
 from incident_contracts.errors import IllegalTransitionError
 from incident_contracts.models import Incident
 from incident_contracts.service import IncidentService
+from observability.logging import bind_context
+from observability.metrics import record_metric
+from observability.tracing import SPAN_INVESTIGATION_START, start_span
+from remediation_tool.tools import RemediationTools
 
 from agent.bedrock import invocation_enabled
 from agent.loop import run_loop
@@ -114,6 +118,11 @@ def investigate(
     )
     runs.save(record)
 
+    bind_context(
+        incident_id=incident_id,
+        correlation_id=record.correlation_id,
+        agent_run_id=run_id,
+    )
     dispatcher = ToolDispatcher(
         incidents=service,
         logs=logs,
@@ -123,16 +132,18 @@ def investigate(
         observed_at=incident.started_at,
         audit=service,
         agent_run_id=run_id,
+        remediation=RemediationTools(service),
     )
     started = time.monotonic()
-    result = run_loop(
-        model=model,
-        dispatcher=dispatcher,
-        quotas=quotas,
-        incident_id=incident_id,
-        service=incident.service,
-        observed_at=incident.started_at,
-    )
+    with start_span(SPAN_INVESTIGATION_START, agent_run_id=run_id):
+        result = run_loop(
+            model=model,
+            dispatcher=dispatcher,
+            quotas=quotas,
+            incident_id=incident_id,
+            service=incident.service,
+            observed_at=incident.started_at,
+        )
     elapsed_ms = int((time.monotonic() - started) * 1000)
     cost = estimate_cost_usd(
         model.model_id, result.budget.input_tokens, result.budget.output_tokens
@@ -180,6 +191,7 @@ def investigate(
         }
     )
     runs.save(record)
+    _record_run_metrics(record)
     return record
 
 
@@ -215,6 +227,17 @@ def _save_incident(service: IncidentService, incident: Incident) -> None:
     if repository is None or not hasattr(repository, "save"):
         return
     repository.save(incident)
+
+
+def _record_run_metrics(record: AgentRunRecord) -> None:
+    record_metric("llm_calls", record.model_calls)
+    record_metric("input_tokens", record.input_tokens, unit="Count")
+    record_metric("output_tokens", record.output_tokens, unit="Count")
+    record_metric("agent_turns", record.model_calls)
+    record_metric("tool_calls", record.tool_calls)
+    record_metric("rag_calls", record.rag_calls)
+    record_metric("investigation_latency", record.runtime_ms, unit="Milliseconds")
+    record_metric("estimated_cost", record.estimated_cost_usd, unit="None")
 
 
 def guard_illegal(exc: IllegalTransitionError) -> InvestigationRejected:

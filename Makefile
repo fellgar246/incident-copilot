@@ -20,7 +20,7 @@ help:
 	@echo "  ci                   lint, typecheck, test, terraform-validate"
 
 install:
-	$(PYTHON) -m pip install -e packages/cost-guardrails -e packages/contracts -e packages/observability -e services/simulator -e services/incident-worker -e services/tools/cloudwatch -e services/tools/deployments -e services/tools/knowledge -e services/agent -e apps/api -e ".[dev]"
+	$(PYTHON) -m pip install -e packages/cost-guardrails -e packages/contracts -e packages/observability -e services/simulator -e services/incident-worker -e services/tools/cloudwatch -e services/tools/deployments -e services/tools/knowledge -e services/tools/remediation -e services/agent -e apps/api -e ".[dev]"
 	npm install
 
 lint:

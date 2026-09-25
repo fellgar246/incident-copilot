@@ -14,6 +14,7 @@ dependencies = [
   "simulator",
   "cloudwatch-tool",
   "deployments-tool",
+  "remediation-tool",
   "cost-guardrails",
 ]
 

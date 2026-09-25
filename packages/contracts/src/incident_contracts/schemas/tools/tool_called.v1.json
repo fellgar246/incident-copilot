@@ -13,7 +13,8 @@
         "query_logs",
         "query_metrics",
         "get_recent_deployments",
-        "search_runbooks"
+        "search_runbooks",
+        "request_remediation"
       ]
     },
     "ok": { "type": "boolean" },

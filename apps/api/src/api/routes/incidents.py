@@ -14,6 +14,8 @@ from incident_contracts.events import detected_event_from_fixture
 from incident_contracts.models import Incident, IncidentEvent
 from incident_contracts.surface import IDEMPOTENCY_HEADER
 from observability.logging import bind_context
+from observability.metrics import record_metric
+from observability.tracing import SPAN_INCIDENT_RECEIVED, start_span
 
 from api.deps import AppContainer, get_container
 from simulator import simulate
@@ -99,6 +101,13 @@ def simulate_incident(
             extra={"fields": {"incident_id": incident.incident_id}},
         )
     bind_context(incident_id=incident.incident_id, correlation_id=incident.correlation_id)
+    with start_span(SPAN_INCIDENT_RECEIVED):
+        record_metric("incidents_total", 1)
+        record_metric(
+            "incidents_by_status",
+            1,
+            dimensions={"Status": incident.status.value},
+        )
     logger.info(
         "incident.simulate_created",
         extra={"fields": {"incident_id": incident.incident_id, "scenario": payload.scenario.value}},

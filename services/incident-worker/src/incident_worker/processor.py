@@ -11,6 +11,9 @@ from incident_contracts.models import Incident
 from incident_contracts.repository import IncidentRepository
 from incident_contracts.service import IncidentService
 from observability.logging import bind_context
+from observability.metrics import record_metric
+from observability.tracing import SPAN_INCIDENT_RECEIVED, start_span
+from opentelemetry.trace import Span
 
 logger = logging.getLogger("incident_worker")
 
@@ -23,9 +26,21 @@ def ingest_detected(
 ) -> Incident:
     """Idempotent ingest. Duplicate event_id values return the existing incident."""
     bind_context(event_id=event.event_id, correlation_id=event.correlation_id)
+    with start_span(SPAN_INCIDENT_RECEIVED, correlation_id=event.correlation_id) as span:
+        return _ingest(event, repository=repository, quotas=quotas, span=span)
+
+
+def _ingest(
+    event: IncidentDetectedV1,
+    *,
+    repository: IncidentRepository,
+    quotas: AppQuotas | None,
+    span: Span,
+) -> Incident:
     existing = _existing_incident(repository, event)
     if existing is not None:
         bind_context(incident_id=existing.incident_id, correlation_id=existing.correlation_id)
+        span.set_attribute("incident_id", existing.incident_id)
         logger.info(
             "incident.ingest_replay",
             extra={
@@ -44,6 +59,13 @@ def ingest_detected(
     incident, alarm = incident_from_detected(event)
     created = IncidentService(repository).ingest(incident, alarm)
     bind_context(incident_id=created.incident_id, correlation_id=created.correlation_id)
+    span.set_attribute("incident_id", created.incident_id)
+    record_metric("incidents_total", 1)
+    record_metric(
+        "incidents_by_status",
+        1,
+        dimensions={"Status": created.status.value},
+    )
     logger.info(
         "incident.ingest_created",
         extra={

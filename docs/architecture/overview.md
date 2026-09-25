@@ -130,7 +130,9 @@ GET    /metrics/costs
 GET    /evaluations
 ```
 
-HTTP handlers for health, incident list/detail/events, and simulate live in `apps/api`. Remaining catalog routes currently return 501. Mutable simulate calls require `Idempotency-Key` or reuse `simulation_id`; a matching replay returns 200 with the existing incident.
+HTTP handlers for health, incident reads, simulate, investigate, approve / reject / remediate, and cost metrics live in `apps/api`. Evaluations still return 501. Mutable calls require `Idempotency-Key`. A simulate replay returns 200 with the existing incident. `POST /incidents/{id}/remediate` without a valid, unexpired approval returns **403** with `decision: DENIED`.
+
+`GET /incidents/{id}/agent-runs` returns each run plus the reconstructed span tree and the per-incident series `EstimatedCostPerIncident`, `TokensPerIncident`, `ToolCallsPerIncident`, `RuntimePerIncident`, and `RagCallsPerIncident`. `GET /metrics/costs` returns those rollups for every incident together with system counters (`incidents_total`, `incidents_by_status`, `investigation_latency`, `tool_error_rate`, `queue_age`, `dlq_messages`) and AI counters (`llm_calls`, tokens, turns, tool calls, RAG calls, confidence, `evaluation_score`, `estimated_cost`). Span names are `incident.received`, `investigation.start`, `llm.reasoning`, `llm.diagnosis`, `tool.{name}`, `remediation.proposed`, and `remediation.executed`. Trace log groups use `LOG_RETENTION_DAYS` (7 in dev). Set `OTEL_EXPORTER_OTLP_ENDPOINT` to also export those spans for AgentCore Observability.
 
 Detection events use the versioned `incident.detected.v1` schema on a custom EventBridge bus. SQS buffers work for `incident-worker`; after three failed receives the message lands on a DLQ whose depth is the `dlq_messages` alarm. `event_id` is the idempotency key. `POST /incidents/simulate` is a test shortcut that writes DynamoDB directly (and publishes to the bus when `EVENT_BUS_NAME` is set) so local HTTP demos stay synchronous.
 
@@ -147,7 +149,9 @@ Detection events use the versioned `incident.detected.v1` schema on a custom Eve
 
 `query_logs`, `query_metrics`, `get_recent_deployments`, and `search_runbooks`.
 
-All four are read-only tools. They accept a fixed schema, redact secrets, and cap the JSON returned to the caller at 12 KB. Log groups are `/{project}/{environment}/{service}`. Custom metrics use the namespace `AIIncidentCopilot/Demo`. `search_runbooks` returns at most four hits for one demo service and cites document ids on the diagnosis. Tool output is untrusted data: text inside a log line or a runbook is evidence, not an instruction.
+The four evidence tools are read-only. They accept a fixed schema, redact secrets, and cap the JSON returned to the caller at 12 KB. Log groups are `/{project}/{environment}/{service}`. Custom metrics use the namespace `AIIncidentCopilot/Demo`. `search_runbooks` returns at most four hits for one demo service and cites document ids on the diagnosis. Tool output is untrusted data: text inside a log line or a runbook is evidence, not an instruction.
+
+`request_remediation` is the only safe write the agent may call. It records a `rollback_simulated` proposal and moves the incident to `AWAITING_APPROVAL`. It does not change the simulator. `execute_remediation` is not on the agent allowlist. The API runs it after a human grant, with an idempotency key, a three-second timeout, and `remediation-tool-role`. That role may update the incident item and is denied compute and shell actions. `REMEDIATION_ENABLED=false` denies execution. Destructive action names are rejected.
 
 ## Demo services
 

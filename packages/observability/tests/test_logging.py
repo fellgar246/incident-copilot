@@ -57,3 +57,32 @@ def test_json_formatter_includes_bound_context() -> None:
     assert "token-value" not in line
     clear_context()
     assert current_context() == {}
+
+
+def test_formatter_redacts_prompts_and_tool_secrets() -> None:
+    access_key = "AKIA" + ("Y" * 16)
+    record = logging.LogRecord(
+        name="agent",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="model turn",
+        args=(),
+        exc_info=None,
+    )
+    record.fields = {
+        "prompt": f"system secret {access_key} Bearer raw-token",
+        "system_prompt": "do not log this prompt",
+        "tool_secret": "tool-credential",
+        "agent_run_id": "run_1",
+    }
+    line = JsonLogFormatter().format(record)
+    assert access_key not in line
+    assert "raw-token" not in line
+    assert "do not log this prompt" not in line
+    assert "tool-credential" not in line
+    payload = json.loads(line)
+    assert payload["prompt"] == "[REDACTED]"
+    assert payload["system_prompt"] == "[REDACTED]"
+    assert payload["tool_secret"] == "[REDACTED]"
+    assert payload["agent_run_id"] == "run_1"

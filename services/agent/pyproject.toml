@@ -9,6 +9,7 @@ dependencies = [
   "incident-contracts",
   "jsonschema>=4.23",
   "knowledge-tool",
+  "remediation-tool",
   "observability",
   "pydantic>=2.9",
 ]

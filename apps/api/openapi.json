@@ -296,6 +296,9 @@
     },
     "/incidents/{id}/investigate": {
       "post": {
+        "tags": [
+          "incidents"
+        ],
         "summary": "Investigate Incident",
         "operationId": "investigate_incident_incidents__id__investigate_post",
         "parameters": [
@@ -307,127 +310,46 @@
               "type": "string",
               "title": "Id"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "responses": {
-          "501": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+          "200": {
+            "description": "Existing run for this Idempotency-Key.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AgentRunRecord"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/incidents/{id}/approve": {
-      "post": {
-        "summary": "Approve Incident",
-        "operationId": "approve_incident_incidents__id__approve_post",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/incidents/{id}/reject": {
-      "post": {
-        "summary": "Reject Incident",
-        "operationId": "reject_incident_incidents__id__reject_post",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+          "400": {
+            "description": "Idempotency-Key is required."
           },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/incidents/{id}/remediate": {
-      "post": {
-        "summary": "Remediate Incident",
-        "operationId": "remediate_incident_incidents__id__remediate_post",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+          "404": {
+            "description": "incident not found"
+          },
+          "409": {
+            "description": "Invocation disabled or status does not allow investigation."
+          },
+          "429": {
+            "description": "Agent run quota reached. The incident is unchanged."
           },
           "422": {
             "description": "Validation Error",
@@ -444,6 +366,9 @@
     },
     "/incidents/{id}/agent-runs": {
       "get": {
+        "tags": [
+          "incidents"
+        ],
         "summary": "List Agent Runs",
         "operationId": "list_agent_runs_incidents__id__agent_runs_get",
         "parameters": [
@@ -458,13 +383,306 @@
           }
         ],
         "responses": {
-          "501": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunsResponse"
+                }
               }
             }
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/approve": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Approve Incident",
+        "operationId": "approve_incident_incidents__id__approve_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-Actor",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Actor"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveIncidentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key is required."
+          },
+          "403": {
+            "description": "Approval is missing, mismatched, or expired. Decision is DENIED."
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "409": {
+            "description": "Incident is not awaiting approval."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/reject": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Reject Incident",
+        "operationId": "reject_incident_incidents__id__reject_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-Actor",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Actor"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectIncidentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key is required."
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "409": {
+            "description": "Incident is not awaiting approval."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/incidents/{id}/remediate": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Remediate Incident",
+        "operationId": "remediate_incident_incidents__id__remediate_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "X-Actor",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Actor"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemediateIncidentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Incident"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Idempotency-Key is required."
+          },
+          "403": {
+            "description": "Remediation without a valid, unexpired approval is DENIED. Also returned when REMEDIATION_ENABLED=false or the action is not allowlisted."
+          },
+          "404": {
+            "description": "incident not found"
+          },
+          "409": {
+            "description": "A remediation is already active, or the incident is not approved."
+          },
+          "504": {
+            "description": "The safe write exceeded its timeout and the incident is FAILED."
           },
           "422": {
             "description": "Validation Error",
@@ -481,14 +699,19 @@
     },
     "/metrics/costs": {
       "get": {
+        "tags": [
+          "metrics"
+        ],
         "summary": "Metrics Costs",
         "operationId": "metrics_costs_metrics_costs_get",
         "responses": {
-          "501": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/CostMetricsResponse"
+                }
               }
             }
           }
@@ -514,6 +737,237 @@
   },
   "components": {
     "schemas": {
+      "AgentRunRecord": {
+        "properties": {
+          "agent_run_id": {
+            "type": "string",
+            "title": "Agent Run Id"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "correlation_id": {
+            "type": "string",
+            "title": "Correlation Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentRunStatus"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "model_calls": {
+            "type": "integer",
+            "title": "Model Calls",
+            "default": 0
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "tool_calls": {
+            "type": "integer",
+            "title": "Tool Calls",
+            "default": 0
+          },
+          "rag_calls": {
+            "type": "integer",
+            "title": "Rag Calls",
+            "default": 0
+          },
+          "runtime_ms": {
+            "type": "integer",
+            "title": "Runtime Ms",
+            "default": 0
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd",
+            "default": 0.0
+          },
+          "stop_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Reason"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "tool_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tool Names"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agent_run_id",
+          "incident_id",
+          "correlation_id",
+          "status",
+          "model",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AgentRunRecord"
+      },
+      "AgentRunStatus": {
+        "type": "string",
+        "enum": [
+          "QUEUED",
+          "INVESTIGATING",
+          "DIAGNOSED",
+          "FAILED",
+          "STOPPED"
+        ],
+        "title": "AgentRunStatus"
+      },
+      "AgentRunsResponse": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/AgentRunRecord"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "trace": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Trace"
+          },
+          "EstimatedCostPerIncident": {
+            "type": "number",
+            "title": "Estimatedcostperincident"
+          },
+          "TokensPerIncident": {
+            "type": "integer",
+            "title": "Tokensperincident"
+          },
+          "ToolCallsPerIncident": {
+            "type": "integer",
+            "title": "Toolcallsperincident"
+          },
+          "RuntimePerIncident": {
+            "type": "integer",
+            "title": "Runtimeperincident"
+          },
+          "RagCallsPerIncident": {
+            "type": "integer",
+            "title": "Ragcallsperincident"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs",
+          "trace",
+          "EstimatedCostPerIncident",
+          "TokensPerIncident",
+          "ToolCallsPerIncident",
+          "RuntimePerIncident",
+          "RagCallsPerIncident"
+        ],
+        "title": "AgentRunsResponse"
+      },
+      "Approval": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "title": "Approval Id"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ApprovalStatus"
+          },
+          "actor": {
+            "type": "string",
+            "title": "Actor"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "proposal_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approval_id",
+          "incident_id",
+          "status",
+          "actor",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "Approval"
+      },
       "ApprovalStatus": {
         "type": "string",
         "enum": [
@@ -523,6 +977,21 @@
           "EXPIRED"
         ],
         "title": "ApprovalStatus"
+      },
+      "ApproveIncidentRequest": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Approval Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approval_id"
+        ],
+        "title": "ApproveIncidentRequest"
       },
       "AwsHealthResponse": {
         "properties": {
@@ -542,6 +1011,133 @@
           "repository"
         ],
         "title": "AwsHealthResponse"
+      },
+      "CostMetricsResponse": {
+        "properties": {
+          "log_retention_days": {
+            "type": "integer",
+            "title": "Log Retention Days"
+          },
+          "series": {
+            "$ref": "#/components/schemas/CostSeries"
+          },
+          "incidents": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentCostSummary"
+            },
+            "type": "array",
+            "title": "Incidents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "log_retention_days",
+          "series",
+          "incidents"
+        ],
+        "title": "CostMetricsResponse"
+      },
+      "CostSeries": {
+        "properties": {
+          "incidents_total": {
+            "type": "integer",
+            "title": "Incidents Total"
+          },
+          "incidents_by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Incidents By Status"
+          },
+          "investigation_latency": {
+            "type": "number",
+            "title": "Investigation Latency"
+          },
+          "tool_error_rate": {
+            "type": "number",
+            "title": "Tool Error Rate"
+          },
+          "queue_age": {
+            "type": "number",
+            "title": "Queue Age"
+          },
+          "dlq_messages": {
+            "type": "number",
+            "title": "Dlq Messages"
+          },
+          "llm_calls": {
+            "type": "integer",
+            "title": "Llm Calls"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "agent_turns": {
+            "type": "integer",
+            "title": "Agent Turns"
+          },
+          "tool_calls": {
+            "type": "integer",
+            "title": "Tool Calls"
+          },
+          "rag_calls": {
+            "type": "integer",
+            "title": "Rag Calls"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "evaluation_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Score"
+          },
+          "estimated_cost": {
+            "type": "number",
+            "title": "Estimated Cost"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "incidents_total",
+          "incidents_by_status",
+          "investigation_latency",
+          "tool_error_rate",
+          "queue_age",
+          "dlq_messages",
+          "llm_calls",
+          "input_tokens",
+          "output_tokens",
+          "agent_turns",
+          "tool_calls",
+          "rag_calls",
+          "confidence",
+          "evaluation_score",
+          "estimated_cost"
+        ],
+        "title": "CostSeries"
       },
       "Diagnosis": {
         "properties": {
@@ -832,6 +1428,26 @@
               }
             ],
             "title": "Approval Id"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Proposal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Approval"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -847,6 +1463,45 @@
           "correlation_id"
         ],
         "title": "Incident"
+      },
+      "IncidentCostSummary": {
+        "properties": {
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "EstimatedCostPerIncident": {
+            "type": "number",
+            "title": "Estimatedcostperincident"
+          },
+          "TokensPerIncident": {
+            "type": "integer",
+            "title": "Tokensperincident"
+          },
+          "ToolCallsPerIncident": {
+            "type": "integer",
+            "title": "Toolcallsperincident"
+          },
+          "RuntimePerIncident": {
+            "type": "integer",
+            "title": "Runtimeperincident"
+          },
+          "RagCallsPerIncident": {
+            "type": "integer",
+            "title": "Ragcallsperincident"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "incident_id",
+          "EstimatedCostPerIncident",
+          "TokensPerIncident",
+          "ToolCallsPerIncident",
+          "RuntimePerIncident",
+          "RagCallsPerIncident"
+        ],
+        "title": "IncidentCostSummary"
       },
       "IncidentEvent": {
         "properties": {
@@ -923,6 +1578,82 @@
           "RESOLVED"
         ],
         "title": "IncidentStatus"
+      },
+      "Proposal": {
+        "properties": {
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
+          "incident_id": {
+            "type": "string",
+            "title": "Incident Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "rationale": {
+            "type": "string",
+            "title": "Rationale"
+          },
+          "requires_approval": {
+            "type": "boolean",
+            "title": "Requires Approval",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "proposal_id",
+          "incident_id",
+          "action",
+          "rationale"
+        ],
+        "title": "Proposal",
+        "description": "A remediation the agent may request. Creating one does not change any resource."
+      },
+      "RejectIncidentRequest": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Approval Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approval_id"
+        ],
+        "title": "RejectIncidentRequest"
+      },
+      "RemediateIncidentRequest": {
+        "properties": {
+          "approval_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Approval Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approval_id"
+        ],
+        "title": "RemediateIncidentRequest"
       },
       "ScenarioId": {
         "type": "string",

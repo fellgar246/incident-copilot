@@ -23,13 +23,18 @@ def test_catalog_is_read_only_and_under_the_cap() -> None:
     assert tuple(tool.name for tool in tools) == GATEWAY_TOOL_NAMES
     assert TOOL_CALLS_METRIC == "tool_calls"
     for tool in tools:
-        assert tool.tool_class is ToolClass.READ_ONLY
+        if tool.name == "request_remediation":
+            assert tool.tool_class is ToolClass.SAFE_WRITE
+        else:
+            assert tool.tool_class is ToolClass.READ_ONLY
         assert tool.timeout_seconds == 3.0
         assert tool.iam_scope
         Draft202012Validator.check_schema(tool.input_schema)
         Draft202012Validator.check_schema(tool.output_schema)
         assert tool.name != "execute_remediation"
+        assert tool.tool_class is not ToolClass.DESTRUCTIVE
     assert "search_runbooks" in {tool.name for tool in tools}
+    assert "request_remediation" in {tool.name for tool in tools}
 
 
 def test_evidence_inputs_reject_free_form_queries() -> None:

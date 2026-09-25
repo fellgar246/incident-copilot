@@ -51,6 +51,10 @@ class KnowledgeTool(Protocol):
     def search_runbooks(self, payload: Any, *, rag_calls_used: int = 0) -> Any: ...
 
 
+class RemediationRequester(Protocol):
+    def request_remediation(self, payload: Any, *, actor: str = "agent", at: Any = None) -> Any: ...
+
+
 class ToolDispatcher:
     """Execute allowlisted read tools. Reject every other name, including ones found in logs."""
 
@@ -62,6 +66,7 @@ class ToolDispatcher:
         metrics: MetricTool,
         deployments: DeploymentTool,
         knowledge: KnowledgeTool | None = None,
+        remediation: RemediationRequester | None = None,
         incident_id: str,
         observed_at: datetime,
         audit: ToolCallAudit,
@@ -72,6 +77,7 @@ class ToolDispatcher:
         self._metrics = metrics
         self._deployments = deployments
         self._knowledge = knowledge if knowledge is not None else _default_knowledge()
+        self._remediation = remediation
         self._incident_id = incident_id
         self._rag_calls_used = 0
         self._observed_at = observed_at
@@ -153,6 +159,13 @@ def _deployments(dispatcher: ToolDispatcher, arguments: dict[str, Any]) -> Any:
     return _dump(result)
 
 
+def _request_remediation(dispatcher: ToolDispatcher, arguments: dict[str, Any]) -> Any:
+    if dispatcher._remediation is None:
+        raise RuntimeError("request_remediation is not configured")
+    result = dispatcher._remediation.request_remediation(arguments, actor="agent")
+    return _dump(result)
+
+
 def _search_runbooks(dispatcher: ToolDispatcher, arguments: dict[str, Any]) -> Any:
     result = dispatcher._knowledge.search_runbooks(
         arguments, rag_calls_used=dispatcher._rag_calls_used
@@ -178,4 +191,5 @@ _HANDLERS: dict[str, Callable[[ToolDispatcher, dict[str, Any]], Any]] = {
     "query_metrics": _query_metrics,
     "get_recent_deployments": _deployments,
     "search_runbooks": _search_runbooks,
+    "request_remediation": _request_remediation,
 }

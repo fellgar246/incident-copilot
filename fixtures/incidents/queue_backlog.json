@@ -19,7 +19,9 @@
     "simulation_id": "sim_319b543bf6b97d2a",
     "source_event_id": "evt_1388f45932bf0e19",
     "active_remediation_id": null,
-    "approval_id": null
+    "approval_id": null,
+    "proposal": null,
+    "approval": null
   },
   "events": [
     {

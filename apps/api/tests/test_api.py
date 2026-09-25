@@ -123,8 +123,6 @@ def test_invalid_payload_is_422(client: TestClient) -> None:
 
 
 def test_unimplemented_routes_are_501(client: TestClient) -> None:
-    assert client.post("/incidents/inc_x/approve").status_code == 501
-    assert client.get("/metrics/costs").status_code == 501
     assert client.get("/evaluations").status_code == 501
 
 
@@ -143,9 +141,21 @@ def test_investigate_is_idempotent_and_lists_runs(client: TestClient) -> None:
     assert first.json()["input_tokens"] > 0
     runs = client.get(f"/incidents/{incident_id}/agent-runs")
     assert runs.status_code == 200
-    assert len(runs.json()) == 1
+    body = runs.json()
+    assert len(body["runs"]) == 1
+    assert body["EstimatedCostPerIncident"] >= 0
+    assert body["TokensPerIncident"] > 0
+    assert "tool.query_logs" in _span_names(body["trace"])
     fetched = client.get(f"/incidents/{incident_id}")
     assert fetched.json()["status"] == "DIAGNOSED"
+    costs = client.get("/metrics/costs")
+    assert costs.status_code == 200
+    series = costs.json()["series"]
+    assert series["incidents_total"] >= 1
+    assert series["estimated_cost"] >= 0
+    assert costs.json()["log_retention_days"] == 7
+    match = next(item for item in costs.json()["incidents"] if item["incident_id"] == incident_id)
+    assert match["ToolCallsPerIncident"] >= 1
 
 
 def test_daily_quota_blocks_new_incidents_not_replays(
@@ -225,3 +235,21 @@ def test_simulate_publishes_detected_event_once(
     event = publisher.events[0]
     assert event.event_id == first.json()["source_event_id"]  # type: ignore[attr-defined]
     assert event.correlation_id == first.json()["correlation_id"]  # type: ignore[attr-defined]
+
+
+def _span_names(trace: dict[str, object]) -> set[str]:
+    found: set[str] = set()
+
+    def walk(nodes: object) -> None:
+        if not isinstance(nodes, list):
+            return
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            name = node.get("name")
+            if isinstance(name, str):
+                found.add(name)
+            walk(node.get("children"))
+
+    walk(trace.get("spans"))
+    return found

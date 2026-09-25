@@ -9,9 +9,17 @@ from incident_contracts.errors import (
     DuplicateRemediationError,
     IncidentNotFoundError,
     InvalidApprovalError,
+    RemediationDeniedError,
 )
 from incident_contracts.lifecycle import transition
-from incident_contracts.models import Approval, Diagnosis, Incident, IncidentEvent, IncidentFixture
+from incident_contracts.models import (
+    Approval,
+    Diagnosis,
+    Incident,
+    IncidentEvent,
+    IncidentFixture,
+    Proposal,
+)
 from incident_contracts.repository import IncidentRepository
 
 
@@ -184,6 +192,7 @@ class IncidentService:
         actor: str,
         at: datetime,
         event_id: str,
+        proposal: Proposal | None = None,
     ) -> Incident:
         incident = self._transition(
             incident_id,
@@ -191,14 +200,20 @@ class IncidentService:
             actor=actor,
             at=at,
             event_id=event_id,
-            payload={"approval_id": approval.approval_id},
-        )
-        incident = incident.model_copy(
-            update={
+            payload={
                 "approval_id": approval.approval_id,
-                "approval_status": ApprovalStatus.PENDING,
-            }
+                "proposal_id": approval.proposal_id,
+                "expires_at": approval.expires_at.isoformat(),
+            },
         )
+        update: dict[str, object] = {
+            "approval_id": approval.approval_id,
+            "approval_status": ApprovalStatus.PENDING,
+            "approval": approval,
+        }
+        if proposal is not None:
+            update["proposal"] = proposal
+        incident = incident.model_copy(update=update)
         self._repo.save(incident)
         return incident
 
@@ -215,7 +230,12 @@ class IncidentService:
         incident = self.get(incident_id)
         if incident.approval_id != approval_id:
             raise InvalidApprovalError(f"approval_id mismatch for {incident_id}")
-        if at > expires_at:
+        effective_expiry = expires_at
+        if incident.approval is not None:
+            if incident.approval.approval_id != approval_id:
+                raise InvalidApprovalError(f"approval_id mismatch for {incident_id}")
+            effective_expiry = incident.approval.expires_at
+        if at > effective_expiry:
             raise InvalidApprovalError(f"approval {approval_id} has expired")
         incident = self._transition(
             incident_id,
@@ -223,9 +243,20 @@ class IncidentService:
             actor=actor,
             at=at,
             event_id=event_id,
-            payload={"approval_id": approval_id},
+            payload={"approval_id": approval_id, "actor": actor},
         )
-        incident = incident.model_copy(update={"approval_status": ApprovalStatus.GRANTED})
+        stored = incident.approval
+        if stored is not None:
+            stored = stored.model_copy(
+                update={
+                    "status": ApprovalStatus.GRANTED,
+                    "decided_at": at,
+                    "actor": actor,
+                }
+            )
+        incident = incident.model_copy(
+            update={"approval_status": ApprovalStatus.GRANTED, "approval": stored}
+        )
         self._repo.save(incident)
         return incident
 
@@ -246,7 +277,18 @@ class IncidentService:
             event_id=event_id,
             payload={"approval_id": approval_id},
         )
-        incident = incident.model_copy(update={"approval_status": ApprovalStatus.REJECTED})
+        stored = incident.approval
+        if stored is not None:
+            stored = stored.model_copy(
+                update={
+                    "status": ApprovalStatus.REJECTED,
+                    "decided_at": at,
+                    "actor": actor,
+                }
+            )
+        incident = incident.model_copy(
+            update={"approval_status": ApprovalStatus.REJECTED, "approval": stored}
+        )
         self._repo.save(incident)
         return incident
 
@@ -267,8 +309,11 @@ class IncidentService:
             raise DuplicateRemediationError(
                 f"incident {incident_id} already has remediation {incident.active_remediation_id}"
             )
-        if incident.approval_id != approval_id:
-            raise InvalidApprovalError("valid approval_id is required to remediate")
+        granted = incident.approval_status is ApprovalStatus.GRANTED
+        if incident.approval_id != approval_id or not granted:
+            raise RemediationDeniedError("valid approval_id is required to remediate")
+        if incident.approval is not None and at > incident.approval.expires_at:
+            raise RemediationDeniedError(f"approval {approval_id} has expired")
         incident = self._transition(
             incident_id,
             IncidentStatus.REMEDIATING,

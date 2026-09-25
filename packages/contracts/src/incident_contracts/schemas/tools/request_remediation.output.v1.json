@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/request_remediation.output.v1.json",
+  "title": "request_remediation_result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tool",
+    "tool_class",
+    "executed",
+    "requires_approval",
+    "proposal_id",
+    "incident_id",
+    "action",
+    "rationale",
+    "status",
+    "approval_id",
+    "expires_at"
+  ],
+  "properties": {
+    "tool": { "const": "request_remediation" },
+    "tool_class": { "const": "SAFE_WRITE" },
+    "executed": { "const": false },
+    "requires_approval": { "const": true },
+    "proposal_id": { "type": "string", "pattern": "^prop_[A-Za-z0-9_-]+$" },
+    "incident_id": { "type": "string", "pattern": "^inc_[A-Za-z0-9_-]+$" },
+    "action": { "const": "rollback_simulated" },
+    "rationale": { "type": "string" },
+    "status": { "const": "AWAITING_APPROVAL" },
+    "approval_id": { "type": "string", "pattern": "^appr_[A-Za-z0-9_-]+$" },
+    "expires_at": { "type": "string", "format": "date-time" }
+  }
+}

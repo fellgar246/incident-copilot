@@ -55,7 +55,7 @@ def _prepare(scenario: ScenarioId):
 
 
 def test_prompt_requires_evidence_and_allowlist() -> None:
-    assert SYSTEM_PROMPT_VERSION == "v2"
+    assert SYSTEM_PROMPT_VERSION == "v3"
     lowered = SYSTEM_PROMPT.lower()
     assert "do not invent" in lowered
     assert "observed evidence" in lowered

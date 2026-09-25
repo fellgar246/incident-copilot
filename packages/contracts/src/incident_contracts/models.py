@@ -43,6 +43,18 @@ class Diagnosis(BaseModel):
     destructive: bool = False
 
 
+class Proposal(BaseModel):
+    """A remediation the agent may request. Creating one does not change any resource."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_id: str
+    incident_id: str
+    action: str
+    rationale: str
+    requires_approval: bool = True
+
+
 class Approval(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -53,6 +65,7 @@ class Approval(BaseModel):
     created_at: datetime
     expires_at: datetime
     decided_at: datetime | None = None
+    proposal_id: str | None = None
 
     @field_validator("actor")
     @classmethod
@@ -136,6 +149,8 @@ class Incident(BaseModel):
     source_event_id: str | None = None
     active_remediation_id: str | None = None
     approval_id: str | None = None
+    proposal: Proposal | None = None
+    approval: Approval | None = None
 
 
 class IncidentFixture(BaseModel):

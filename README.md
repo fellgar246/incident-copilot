@@ -9,7 +9,7 @@ Detect → Queue → Investigate → Retrieve → Reason → Propose
               → Approve → Act → Observe → Evaluate → Measure cost
 ```
 
-**AI** sits in AgentCore Runtime. It can only call `query_logs`, `query_metrics`, `get_recent_deployments`, and `search_runbooks` through AgentCore Gateway. It cannot talk to AWS generically.
+**AI** sits in AgentCore Runtime. It can call `query_logs`, `query_metrics`, `get_recent_deployments`, `search_runbooks`, and `request_remediation` through AgentCore Gateway. It cannot execute a remediation or talk to AWS generically.
 
 **AWS** is the real topology: EventBridge and CloudWatch for detection, DynamoDB for state, SQS for investigation jobs, Lambda/API Gateway for HTTP, S3 for the knowledge corpus, Terraform for infra, GitHub OIDC for CI.
 
@@ -21,7 +21,7 @@ The dashboard is the demo surface. AWS Console is not part of the product flow.
 
 ## Current slice
 
-Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, and read-only evidence tools. `query_logs`, `query_metrics`, and `get_recent_deployments` return redacted, size-capped JSON for the demo services. Locally they read simulator fixtures. In AWS, `cloudwatch-read-tool-role` can read only the demo log groups and the `AIIncidentCopilot/Demo` metric namespace. Investigation, the agent runtime, and the dashboard UI land in later slices.
+Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, and per-incident traces plus cost metrics. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
 
 ## Repository layout
 
@@ -77,7 +77,7 @@ make run-api
 #      {"scenario":"deployment_regression","seed":"demo"}
 ```
 
-`POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Remaining product routes respond **501** until later slices. Logs are JSON and include `request_id` / `correlation_id`; they never include bearer tokens or AWS credentials.
+`POST /incidents/simulate` accepts `Idempotency-Key` and/or `simulation_id`. The first create is **201**; a matching replay is **200** with the same incident and does not insert a second row. Approve, reject, and remediate also require `Idempotency-Key`. Remediate without a grant is **403**. Evaluations still respond **501**. `GET /metrics/costs` returns the system and AI series, including estimated USD per incident. Logs are JSON and include `request_id`, `incident_id`, `agent_run_id`, `correlation_id`, and `approval_id`. They never include bearer tokens, AWS credentials, full prompts, or tool secrets.
 
 Set `INCIDENT_REPOSITORY=dynamodb` (and table names from `terraform output`) to point the process at AWS instead of the in-memory store.
 

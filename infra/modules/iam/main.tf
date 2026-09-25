@@ -183,3 +183,45 @@ resource "aws_iam_role" "cloudwatch_read_tool" {
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   description        = "cloudwatch-read-tool-role: read-only access to allowlisted demo log groups and metrics."
 }
+
+resource "aws_iam_role" "remediation_tool" {
+  name               = "${var.project}-${var.environment}-remediation-tool"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+  description        = "remediation-tool-role: record a simulated logical version on the incidents table. No shell and no compute changes."
+}
+
+# Deny covers every resource because these APIs are not resource-scoped for a demo flag.
+# The only allow is UpdateItem on the incidents table.
+data "aws_iam_policy_document" "remediation_tool" {
+  statement {
+    sid    = "DenyComputeAndShell"
+    effect = "Deny"
+    actions = [
+      "ec2:*",
+      "ecs:*",
+      "lambda:InvokeFunction",
+      "lambda:UpdateFunctionCode",
+      "lambda:UpdateFunctionConfiguration",
+      "ssm:SendCommand",
+      "ssm:StartSession",
+      "elasticloadbalancing:*",
+    ]
+    resources = ["*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.incidents_table_arn == "" ? [] : [var.incidents_table_arn]
+    content {
+      sid       = "RecordSimulatedFlag"
+      effect    = "Allow"
+      actions   = ["dynamodb:UpdateItem"]
+      resources = [statement.value]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "remediation_tool" {
+  name   = "remediation-tool"
+  role   = aws_iam_role.remediation_tool.id
+  policy = data.aws_iam_policy_document.remediation_tool.json
+}

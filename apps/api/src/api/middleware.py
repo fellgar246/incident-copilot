@@ -24,6 +24,8 @@ class CorrelationMiddleware(BaseHTTPMiddleware):
             request_id=request_id,
             correlation_id=correlation_id,
             incident_id=_incident_id_from_path(request.url.path),
+            agent_run_id=request.headers.get("x-agent-run-id"),
+            approval_id=request.headers.get("x-approval-id"),
         )
         try:
             response = await call_next(request)

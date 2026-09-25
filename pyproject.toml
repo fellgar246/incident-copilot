@@ -50,6 +50,7 @@ pythonpath = [
   "services/tools/cloudwatch/src",
   "services/tools/deployments/src",
   "services/tools/knowledge/src",
+  "services/tools/remediation/src",
   "services/agent/src",
   "apps/api/src",
 ]
@@ -67,6 +68,7 @@ mypy_path = [
   "services/tools/cloudwatch/src",
   "services/tools/deployments/src",
   "services/tools/knowledge/src",
+  "services/tools/remediation/src",
   "services/agent/src",
   "apps/api/src",
 ]

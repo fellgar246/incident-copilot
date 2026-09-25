@@ -54,6 +54,7 @@ def test_discover_lists_only_authorized_tools() -> None:
         "query_metrics",
         "get_recent_deployments",
         "search_runbooks",
+        "request_remediation",
     ]
     assert "execute_remediation" not in names
 
@@ -151,7 +152,7 @@ def test_registration_document_rejects_extra_tools() -> None:
     document = registration_document()
     assert document["search_enabled"] is False
     assert document["web_search_enabled"] is False
-    assert document["tool_count"] == 5
+    assert document["tool_count"] == 6
     client_calls: list[str] = []
 
     class Client:
@@ -171,6 +172,7 @@ def test_registration_document_rejects_extra_tools() -> None:
         "query_metrics",
         "get_recent_deployments",
         "search_runbooks",
+        "request_remediation",
     ]
     poisoned = dict(document)
     poisoned["tools"] = [*document["tools"], {"name": "delete_resource"}]
@@ -188,6 +190,7 @@ def test_direct_client_rejects_a_handler_outside_the_catalog() -> None:
                 "query_metrics": lambda arguments: {},
                 "get_recent_deployments": lambda arguments: {},
                 "search_runbooks": lambda arguments: {},
+                "request_remediation": lambda arguments: {},
                 "execute_remediation": lambda arguments: {},
             },
             audit=service,
