@@ -49,6 +49,7 @@ pythonpath = [
   "services/incident-worker/src",
   "services/tools/cloudwatch/src",
   "services/tools/deployments/src",
+  "services/tools/knowledge/src",
   "services/agent/src",
   "apps/api/src",
 ]
@@ -65,6 +66,7 @@ mypy_path = [
   "services/incident-worker/src",
   "services/tools/cloudwatch/src",
   "services/tools/deployments/src",
+  "services/tools/knowledge/src",
   "services/agent/src",
   "apps/api/src",
 ]

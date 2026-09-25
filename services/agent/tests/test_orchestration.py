@@ -55,7 +55,7 @@ def _prepare(scenario: ScenarioId):
 
 
 def test_prompt_requires_evidence_and_allowlist() -> None:
-    assert SYSTEM_PROMPT_VERSION == "v1"
+    assert SYSTEM_PROMPT_VERSION == "v2"
     lowered = SYSTEM_PROMPT.lower()
     assert "do not invent" in lowered
     assert "observed evidence" in lowered
@@ -90,14 +90,16 @@ def test_cost_estimator_scales_with_tokens() -> None:
 
 
 @pytest.mark.parametrize(
-    ("scenario", "fragment"),
+    ("scenario", "fragment", "source_id"),
     [
-        (ScenarioId.DEPLOYMENT_REGRESSION, "UPSTREAM_TIMEOUT"),
-        (ScenarioId.CONNECTION_POOL_EXHAUSTION, "POOL_EXHAUSTED"),
-        (ScenarioId.QUEUE_BACKLOG, "enqueue"),
+        (ScenarioId.DEPLOYMENT_REGRESSION, "UPSTREAM_TIMEOUT", "rb_payments_5xx_after_deploy"),
+        (ScenarioId.CONNECTION_POOL_EXHAUSTION, "POOL_EXHAUSTED", "rb_orders_pool_exhaustion"),
+        (ScenarioId.QUEUE_BACKLOG, "enqueue", "rb_notifications_sqs_backlog"),
     ],
 )
-def test_scripted_model_diagnoses_fixtures(scenario: ScenarioId, fragment: str) -> None:
+def test_scripted_model_diagnoses_fixtures(
+    scenario: ScenarioId, fragment: str, source_id: str
+) -> None:
     fixture, service, telemetry, deployments = _prepare(scenario)
     from agent.model import ScriptedInvestigator
 
@@ -120,6 +122,7 @@ def test_scripted_model_diagnoses_fixtures(scenario: ScenarioId, fragment: str) 
     assert record.estimated_cost_usd >= 0
     assert incident.status is IncidentStatus.DIAGNOSED
     assert fragment in incident.diagnosis.probable_cause
+    assert source_id in incident.diagnosis.retrieved_sources
     assert "delete_resource" not in incident.diagnosis.recommended_action
 
 
@@ -150,6 +153,7 @@ def test_false_positive_stays_uncertain() -> None:
     assert diagnosis.confidence < 0.5
     assert "delete_resource" not in diagnosis.recommended_action
     assert diagnosis.destructive is False
+    assert diagnosis.retrieved_sources == []
 
 
 def test_prompt_injection_cannot_invoke_unlisted_tool() -> None:

@@ -64,12 +64,16 @@ def run_loop(
             if not turn.tool_requests:
                 raise DiagnosisParseError("model returned neither tools nor a diagnosis")
             for request in turn.tool_requests:
+                rag_calls_used = budget.rag_calls
+                if request.name == "search_runbooks":
+                    budget.add_rag_call()
                 budget.add_tool_call()
                 try:
                     body = dispatcher.dispatch(
                         request.name,
                         request.arguments,
                         calls_used=budget.tool_calls - 1,
+                        rag_calls_used=rag_calls_used,
                     )
                 except ToolError as exc:
                     body = json.dumps({"error": str(exc)})

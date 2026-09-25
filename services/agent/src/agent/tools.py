@@ -14,8 +14,7 @@ from agent.gateway import GatewayClient, GatewayError, ToolCallAudit
 
 ALLOWLIST: frozenset[str] = frozenset(GATEWAY_TOOL_NAMES)
 
-# search_runbooks stays off this catalog until a knowledge adapter exists.
-assert "search_runbooks" not in ALLOWLIST
+assert "search_runbooks" in ALLOWLIST
 
 
 class ToolError(RuntimeError):
@@ -48,6 +47,10 @@ class IncidentLookup(Protocol):
     def get(self, incident_id: str) -> Incident: ...
 
 
+class KnowledgeTool(Protocol):
+    def search_runbooks(self, payload: Any, *, rag_calls_used: int = 0) -> Any: ...
+
+
 class ToolDispatcher:
     """Execute allowlisted read tools. Reject every other name, including ones found in logs."""
 
@@ -58,6 +61,7 @@ class ToolDispatcher:
         logs: LogTool,
         metrics: MetricTool,
         deployments: DeploymentTool,
+        knowledge: KnowledgeTool | None = None,
         incident_id: str,
         observed_at: datetime,
         audit: ToolCallAudit,
@@ -67,7 +71,9 @@ class ToolDispatcher:
         self._logs = logs
         self._metrics = metrics
         self._deployments = deployments
+        self._knowledge = knowledge if knowledge is not None else _default_knowledge()
         self._incident_id = incident_id
+        self._rag_calls_used = 0
         self._observed_at = observed_at
         self._calls_used = 0
         self._gateway = GatewayClient(
@@ -88,8 +94,16 @@ class ToolDispatcher:
         """Anchor tool windows on the incident clock so fixture samples stay in range."""
         return self._observed_at + timedelta(minutes=15)
 
-    def dispatch(self, name: str, arguments: dict[str, Any], *, calls_used: int) -> str:
+    def dispatch(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        calls_used: int,
+        rag_calls_used: int = 0,
+    ) -> str:
         self._calls_used = calls_used
+        self._rag_calls_used = rag_calls_used
         try:
             payload = self._gateway.invoke(name, arguments, calls_used=calls_used)
         except GatewayError as exc:
@@ -139,6 +153,19 @@ def _deployments(dispatcher: ToolDispatcher, arguments: dict[str, Any]) -> Any:
     return _dump(result)
 
 
+def _search_runbooks(dispatcher: ToolDispatcher, arguments: dict[str, Any]) -> Any:
+    result = dispatcher._knowledge.search_runbooks(
+        arguments, rag_calls_used=dispatcher._rag_calls_used
+    )
+    return _dump(result)
+
+
+def _default_knowledge() -> KnowledgeTool:
+    from knowledge_tool.tools import KnowledgeTools
+
+    return KnowledgeTools()
+
+
 def _dump(result: Any) -> Any:
     if hasattr(result, "model_dump"):
         return result.model_dump(mode="json")
@@ -150,4 +177,5 @@ _HANDLERS: dict[str, Callable[[ToolDispatcher, dict[str, Any]], Any]] = {
     "query_logs": _query_logs,
     "query_metrics": _query_metrics,
     "get_recent_deployments": _deployments,
+    "search_runbooks": _search_runbooks,
 }

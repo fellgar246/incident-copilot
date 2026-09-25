@@ -28,7 +28,8 @@ def test_catalog_is_read_only_and_under_the_cap() -> None:
         assert tool.iam_scope
         Draft202012Validator.check_schema(tool.input_schema)
         Draft202012Validator.check_schema(tool.output_schema)
-        assert "search_runbooks" not in tool.name
+        assert tool.name != "execute_remediation"
+    assert "search_runbooks" in {tool.name for tool in tools}
 
 
 def test_evidence_inputs_reject_free_form_queries() -> None:

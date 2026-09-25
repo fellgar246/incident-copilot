@@ -57,6 +57,15 @@ module "telemetry" {
   gateway_role_name              = module.iam.agentcore_gateway_role_name
 }
 
+module "knowledge_base" {
+  source = "../../modules/knowledge-base"
+  count  = var.knowledge_corpus_enabled ? 1 : 0
+
+  project     = var.project
+  environment = var.environment
+  aws_region  = var.aws_region
+}
+
 module "api" {
   source = "../../modules/api"
 
@@ -170,6 +179,14 @@ output "cloudwatch_read_tool_role_arn" {
 
 output "agentcore_gateway_role_arn" {
   value = module.iam.agentcore_gateway_role_arn
+}
+
+output "knowledge_bucket_name" {
+  value = try(module.knowledge_base[0].bucket_name, null)
+}
+
+output "knowledge_tool_role_arn" {
+  value = try(module.knowledge_base[0].knowledge_tool_role_arn, null)
 }
 
 output "metric_namespace" {

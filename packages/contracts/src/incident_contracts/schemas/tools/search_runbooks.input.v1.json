@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-incident-copilot.local/tools/search_runbooks.input.v1.json",
+  "title": "search_runbooks",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["query", "service", "top_k"],
+  "properties": {
+    "query": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "service": {
+      "type": "string",
+      "enum": ["payments-api", "orders-api", "notifications-worker"]
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    }
+  }
+}

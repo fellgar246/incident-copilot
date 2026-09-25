@@ -12,7 +12,7 @@ The pinned Terraform AWS provider (`~> 5.70`) has no AgentCore Gateway resource.
 
 ## Decision
 
-1. **Catalog.** The only discoverable tools are the four read-only names above. The catalog stays under ten tools. `search_runbooks` and remediation tools are not registered.
+1. **Catalog.** The discoverable tools are the four read-only names above. The catalog stays under ten tools. Remediation tools are not registered. `search_runbooks` was added later; see ADR-007.
 2. **IAM.** `agentcore-gateway-role` may `dynamodb:GetItem` on the incidents table and `dynamodb:Query` / `GetItem` on the deployments table. Log and metric reads reuse the existing allowlisted CloudWatch policy, attached to the gateway role. The runtime role does not gain a generic AWS SDK.
 3. **Gateway resource.** Until the provider exposes Gateway, `scripts/register_gateway.py` is the only registration path. It prints the target document and refuses to run when search or web search is enabled. It does not call AWS unless `GATEWAY_APPLY=1`, and even then it only submits the four catalog tools.
 4. **Audit.** Every allowlisted attempt appends `TOOL_CALLED` with `tool`, `ok`, `latency_ms`, `truncated`, and `error`. Arguments are redacted in logs and are not stored on the timeline. The log field `tool_calls` is the invocation metric.

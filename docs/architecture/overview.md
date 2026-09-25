@@ -147,7 +147,7 @@ Detection events use the versioned `incident.detected.v1` schema on a custom Eve
 
 `query_logs`, `query_metrics`, `get_recent_deployments`, and `search_runbooks`.
 
-The first three are implemented as read-only tools. They accept a fixed schema, redact secrets, and cap the JSON returned to the caller at 12 KB. Log groups are `/{project}/{environment}/{service}`. Custom metrics use the namespace `AIIncidentCopilot/Demo`. Tool output is untrusted data: text inside a log line is evidence, not an instruction. `search_runbooks` is still a later slice.
+All four are read-only tools. They accept a fixed schema, redact secrets, and cap the JSON returned to the caller at 12 KB. Log groups are `/{project}/{environment}/{service}`. Custom metrics use the namespace `AIIncidentCopilot/Demo`. `search_runbooks` returns at most four hits for one demo service and cites document ids on the diagnosis. Tool output is untrusted data: text inside a log line or a runbook is evidence, not an instruction.
 
 ## Demo services
 

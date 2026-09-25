@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -91,6 +92,10 @@ class ScriptedInvestigator:
                     "get_recent_deployments",
                     {"service": service, "lookback_hours": 24},
                 ),
+                ToolRequest(
+                    "search_runbooks",
+                    {"query": _search_query(service), "service": service, "top_k": 4},
+                ),
             )
             encoded = json.dumps([{"name": item.name} for item in requests])
             return ModelTurn(
@@ -98,8 +103,15 @@ class ScriptedInvestigator:
                 output_tokens=approximate_tokens(encoded),
                 tool_requests=requests,
             )
-        blob = "\n".join(item.content for item in messages if item.role == "tool")
-        diagnosis = _diagnose(blob)
+        observed = "\n".join(
+            item.content
+            for item in messages
+            if item.role == "tool" and item.tool_name != "search_runbooks"
+        )
+        retrieved = "\n".join(
+            item.content for item in messages if item.tool_name == "search_runbooks"
+        )
+        diagnosis = _diagnose(observed, retrieved_sources=_source_ids(retrieved))
         text = json.dumps(diagnosis)
         return ModelTurn(
             input_tokens=prompt_tokens,
@@ -135,7 +147,28 @@ def _service_from_messages(messages: list[ChatMessage]) -> str:
     return "payments-api"
 
 
-def _diagnose(blob: str) -> dict[str, Any]:
+_SEARCH_QUERIES = {
+    "payments-api": "high HTTP 5xx after deployment upstream timeout",
+    "orders-api": "connection pool exhausted POOL_EXHAUSTED",
+    "notifications-worker": "SQS backlog oldest message age",
+}
+_DOCUMENT_ID = re.compile(r'"document_id"\s*:\s*"([^"]+)"')
+
+
+def _search_query(service: str) -> str:
+    return _SEARCH_QUERIES.get(service, "incident evidence")
+
+
+def _source_ids(blob: str) -> list[str]:
+    found: list[str] = []
+    for match in _DOCUMENT_ID.finditer(blob):
+        document_id = match.group(1)
+        if document_id not in found:
+            found.append(document_id)
+    return found[:4]
+
+
+def _diagnose(blob: str, *, retrieved_sources: list[str]) -> dict[str, Any]:
     lowered = blob.lower()
     if "upstream_timeout" in lowered or "deployment regression" in lowered:
         return _doc(
@@ -148,6 +181,7 @@ def _diagnose(blob: str) -> dict[str, Any]:
             source="cloudwatch.logs",
             kind=EvidenceKind.OBSERVED,
             alternatives=["Regional dependency outage"],
+            retrieved_sources=retrieved_sources,
         )
     if "pool_exhausted" in lowered:
         return _doc(
@@ -160,6 +194,7 @@ def _diagnose(blob: str) -> dict[str, Any]:
             source="cloudwatch.logs",
             kind=EvidenceKind.OBSERVED,
             alternatives=["Slow upstream queries"],
+            retrieved_sources=retrieved_sources,
         )
     if "processing lag" in lowered or ("queue" in lowered and "backlog" in lowered):
         return _doc(
@@ -172,6 +207,7 @@ def _diagnose(blob: str) -> dict[str, Any]:
             source="cloudwatch.logs",
             kind=EvidenceKind.OBSERVED,
             alternatives=["Poison message blocking the queue"],
+            retrieved_sources=retrieved_sources,
         )
     return _doc(
         summary="Symptoms are brief or contradictory; there is not enough evidence for a fix.",
@@ -183,6 +219,7 @@ def _diagnose(blob: str) -> dict[str, Any]:
         source="agent.hypothesis",
         kind=EvidenceKind.INFERENCE,
         alternatives=["Hidden error burst outside the log window"],
+        retrieved_sources=[],
     )
 
 
@@ -197,6 +234,7 @@ def _doc(
     source: str,
     kind: EvidenceKind,
     alternatives: list[str],
+    retrieved_sources: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "summary": summary,
@@ -210,7 +248,7 @@ def _doc(
                 "payload": {},
             }
         ],
-        "retrieved_sources": [],
+        "retrieved_sources": retrieved_sources or [],
         "alternative_hypotheses": alternatives,
         "recommended_action": action,
         "requires_approval": requires_approval,

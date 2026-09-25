@@ -16,7 +16,7 @@ SEARCH_FLAGS = ("GATEWAY_SEARCH_ENABLED", "WEB_SEARCH_ENABLED")
 
 
 def registration_document(environ: Any | None = None) -> dict[str, Any]:
-    """Target document for the four authorized tools. Search stays disabled."""
+    """Target document for the authorized read-only tools. Search stays disabled."""
     _refuse_search(os.environ if environ is None else environ)
     tools = []
     for tool in gateway_tools():

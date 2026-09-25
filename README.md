@@ -172,7 +172,7 @@ remediation-tool-role
 ci-deploy-role
 ```
 
-`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `cloudwatch-read-tool-role` may filter the demo log groups and read the `AIIncidentCopilot/Demo` metric namespace. `ci-deploy-role` exists only when OIDC is enabled.
+`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `cloudwatch-read-tool-role` may filter the demo log groups and read the `AIIncidentCopilot/Demo` metric namespace. `knowledge-tool-role` may read the corpus bucket and call `bedrock:Retrieve`. `ci-deploy-role` exists only when OIDC is enabled.
 
 ## Make targets
 

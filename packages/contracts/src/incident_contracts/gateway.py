@@ -22,6 +22,7 @@ GATEWAY_TOOL_NAMES: tuple[str, ...] = (
     "query_logs",
     "query_metrics",
     "get_recent_deployments",
+    "search_runbooks",
 )
 
 _SCHEMA_DIR = "schemas/tools"
@@ -37,6 +38,7 @@ class ToolCalledV1(BaseModel):
         "query_logs",
         "query_metrics",
         "get_recent_deployments",
+        "search_runbooks",
     ]
     ok: bool
     latency_ms: int = Field(ge=0)
@@ -122,6 +124,15 @@ def gateway_tools() -> tuple[GatewayTool, ...]:
             iam_scope="dynamodb:Query on the deployments table",
             input_schema=load_tool_schema("get_recent_deployments.input.v1.json"),
             output_schema=load_tool_schema("get_recent_deployments.output.v1.json"),
+        ),
+        GatewayTool(
+            name="search_runbooks",
+            description="Retrieve operational documents for one demo service.",
+            tool_class=ToolClass.READ_ONLY,
+            timeout_seconds=3.0,
+            iam_scope="bedrock:Retrieve and s3:GetObject on the corpus bucket",
+            input_schema=load_tool_schema("search_runbooks.input.v1.json"),
+            output_schema=load_tool_schema("search_runbooks.output.v1.json"),
         ),
     )
     if len(tools) > MAX_GATEWAY_TOOLS:

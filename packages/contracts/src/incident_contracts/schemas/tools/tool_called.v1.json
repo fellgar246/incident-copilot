@@ -8,7 +8,13 @@
   "properties": {
     "tool": {
       "type": "string",
-      "enum": ["get_incident", "query_logs", "query_metrics", "get_recent_deployments"]
+      "enum": [
+        "get_incident",
+        "query_logs",
+        "query_metrics",
+        "get_recent_deployments",
+        "search_runbooks"
+      ]
     },
     "ok": { "type": "boolean" },
     "latency_ms": { "type": "integer", "minimum": 0 },

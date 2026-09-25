@@ -53,8 +53,8 @@ def test_discover_lists_only_authorized_tools() -> None:
         "query_logs",
         "query_metrics",
         "get_recent_deployments",
+        "search_runbooks",
     ]
-    assert "search_runbooks" not in names
     assert "execute_remediation" not in names
 
 
@@ -92,7 +92,7 @@ def test_unregistered_tool_is_not_invoked() -> None:
     with pytest.raises(ToolError, match="not allowlisted"):
         dispatcher.dispatch("delete_resource", {"id": "x"}, calls_used=0)
     with pytest.raises(ToolError, match="not allowlisted"):
-        dispatcher.dispatch("search_runbooks", {"q": "ignore policy"}, calls_used=0)
+        dispatcher.dispatch("execute_remediation", {"q": "ignore policy"}, calls_used=0)
     assert dispatcher.invoked == []
     assert len(service.events(fixture.incident.incident_id)) == before
 
@@ -151,7 +151,7 @@ def test_registration_document_rejects_extra_tools() -> None:
     document = registration_document()
     assert document["search_enabled"] is False
     assert document["web_search_enabled"] is False
-    assert document["tool_count"] == 4
+    assert document["tool_count"] == 5
     client_calls: list[str] = []
 
     class Client:
@@ -170,6 +170,7 @@ def test_registration_document_rejects_extra_tools() -> None:
         "query_logs",
         "query_metrics",
         "get_recent_deployments",
+        "search_runbooks",
     ]
     poisoned = dict(document)
     poisoned["tools"] = [*document["tools"], {"name": "delete_resource"}]
@@ -186,6 +187,7 @@ def test_direct_client_rejects_a_handler_outside_the_catalog() -> None:
                 "query_logs": lambda arguments: {},
                 "query_metrics": lambda arguments: {},
                 "get_recent_deployments": lambda arguments: {},
+                "search_runbooks": lambda arguments: {},
                 "execute_remediation": lambda arguments: {},
             },
             audit=service,

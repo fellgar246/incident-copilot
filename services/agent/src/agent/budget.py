@@ -58,5 +58,9 @@ class RunBudget:
         self._check("MAX_TOOL_CALLS_PER_RUN", self.tool_calls, self.quotas.max_tool_calls_per_run)
         self.tool_calls += 1
 
+    def add_rag_call(self) -> None:
+        self._check("MAX_RAG_CALLS_PER_RUN", self.rag_calls, self.quotas.max_rag_calls_per_run)
+        self.rag_calls += 1
+
     def _check(self, name: str, used: int, limit: int) -> None:
         self.quotas.enforce(name, used=used, limit=limit)
