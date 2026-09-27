@@ -31,7 +31,7 @@ export function ConfidenceMeter({ value }: { value: number | null | undefined })
   );
 }
 
-export function CopyId({ value, label }: { value: string; label?: string }) {
+export function CopyId({ value, label, max = 18 }: { value: string; label?: string; max?: number }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -47,7 +47,7 @@ export function CopyId({ value, label }: { value: string; label?: string }) {
         });
       }}
     >
-      {copied ? "Copied" : truncateId(value, 18)}
+      {copied ? "Copied" : truncateId(value, max)}
     </button>
   );
 }

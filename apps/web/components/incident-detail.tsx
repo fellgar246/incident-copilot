@@ -177,7 +177,7 @@ export function IncidentDetail() {
         })}
       </div>
 
-      {denial ? (
+      {denial && incident.status === "AWAITING_APPROVAL" ? (
         <div className="banner denied" role="alert" data-testid="denied-banner">
           Denied — missing valid approval. {denial.message}
         </div>
@@ -288,35 +288,58 @@ function Overview({ incident }: { incident: Incident }) {
   );
 }
 
+type TimelineRow = { kind: "event"; at: number; event: IncidentEvent } | { kind: "denial"; at: number; denial: DenialNotice };
+
 function Timeline({ events, denial }: { events: IncidentEvent[]; denial: DenialNotice | null }) {
-  const ordered = useMemo(() => [...events].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)), [events]);
+  // The denial lives in session storage, so merge it by time instead of pinning it to the end.
+  const rows = useMemo(() => {
+    const merged: TimelineRow[] = events.map((event) => ({ kind: "event", at: Date.parse(event.timestamp), event }));
+    if (denial) merged.push({ kind: "denial", at: Date.parse(denial.at), denial });
+    return merged.sort((a, b) => a.at - b.at);
+  }, [events, denial]);
   return (
     <div className="panel">
       <h2>Timeline</h2>
       <div className="timeline">
-        {ordered.length === 0 && !denial ? <p className="muted">No events yet.</p> : null}
-        {ordered.map((event) => (
-          <article key={event.event_id} className="event">
-            <time className="muted">{formatTime(event.timestamp)}</time>
-            <span className="mono">{event.actor}</span>
-            <div>
-              <strong>{event.event_type}</strong>
-              {event.from_status || event.to_status ? (
-                <div className="muted">{event.from_status || "—"} → {event.to_status || "—"}</div>
-              ) : null}
-            </div>
-          </article>
-        ))}
-        {denial ? (
-          <article className="event denied" data-testid="denied-event">
-            <time className="muted">{formatTime(denial.at)}</time>
-            <span className="mono">human:demo</span>
-            <div><strong>Denied — missing valid approval</strong><div className="muted">{denial.message}</div></div>
-          </article>
-        ) : null}
+        {rows.length === 0 ? <p className="muted">No events yet.</p> : null}
+        {rows.map((row) =>
+          row.kind === "event" ? (
+            <article key={row.event.event_id} className="event">
+              <time className="muted">{formatTime(row.event.timestamp)}</time>
+              <span className="mono">{row.event.actor}</span>
+              <div>
+                <strong>{row.event.event_type}</strong>
+                {row.event.from_status || row.event.to_status ? (
+                  <div className="muted">{row.event.from_status || "—"} → {row.event.to_status || "—"}</div>
+                ) : null}
+              </div>
+            </article>
+          ) : (
+            <article key="denial" className="event denied" data-testid="denied-event">
+              <time className="muted">{formatTime(row.denial.at)}</time>
+              <span className="mono">human:demo</span>
+              <div><strong>Denied — missing valid approval</strong><div className="muted">{row.denial.message}</div></div>
+            </article>
+          ),
+        )}
       </div>
     </div>
   );
+}
+
+// Mirrors the gateway catalog in packages/contracts/src/incident_contracts/gateway.py.
+const TOOL_DESCRIPTIONS: Record<string, string> = {
+  get_incident: "Loaded the incident under investigation.",
+  query_logs: "Read recent allowlisted logs for the service.",
+  query_metrics: "Read an allowlisted metric for the service.",
+  get_recent_deployments: "Read recent deployments for the service.",
+  search_runbooks: "Retrieved runbooks, postmortems, and service docs.",
+  request_remediation: "Requested a remediation for approval.",
+};
+
+function toolOutcome(payload: Record<string, unknown>): string {
+  if (payload.ok === false) return `Failed — ${String(payload.error || "tool error")}`;
+  return payload.truncated ? "OK · output truncated to the size cap" : "OK";
 }
 
 function Investigation({ events, incident }: { events: IncidentEvent[]; incident: Incident }) {
@@ -333,7 +356,8 @@ function Investigation({ events, incident }: { events: IncidentEvent[]; incident
               <span className="chip st-INVESTIGATING">{name}</span>
               <span className="muted">{typeof payload.latency_ms === "number" ? `${payload.latency_ms} ms` : "—"} · step {index + 1}</span>
             </header>
-            <p className="muted">{payload.ok === false ? String(payload.error || "Tool failed") : "Call recorded"}</p>
+            <p>{TOOL_DESCRIPTIONS[name] ?? "Allowlisted tool call."}</p>
+            <p className="muted">{toolOutcome(payload)}</p>
           </article>
         );
       })}
@@ -370,24 +394,38 @@ function Knowledge({ incident }: { incident: Incident }) {
   if (sources.length === 0 && retrieved.length === 0) {
     return <p className="muted">No retrieved source IDs yet.</p>;
   }
+  const summaries = new Map(retrieved.map((item) => [item.source, item.summary]));
+  const ids = [...new Set([...sources, ...retrieved.map((item) => item.source)])];
   return (
     <div className="stack">
-      {sources.map((source) => (
-        <article key={source} className="kind">
-          <div className="label">Retrieved guidance</div>
-          <p>Runbook or ADR cited by the investigation.</p>
-          <CopyId value={source} label="source id" />
-        </article>
-      ))}
-      {retrieved.map((item) => (
-        <article key={item.evidence_id} className="kind">
-          <div className="label">Retrieved guidance</div>
-          <p>{item.summary}</p>
-          <CopyId value={item.source} label="source id" />
-        </article>
-      ))}
+      {ids.map((source) => {
+        const doc = describeDocument(source);
+        return (
+          <article key={source} className="kind">
+            <div className="label">{doc.type}</div>
+            <p>{summaries.get(source) || doc.title}</p>
+            <CopyId value={source} label="source id" max={source.length} />
+          </article>
+        );
+      })}
     </div>
   );
+}
+
+const DOCUMENT_TYPES: Array<[prefix: string, type: string]> = [
+  ["rb_", "Runbook"],
+  ["pm_", "Postmortem"],
+  ["svc_", "Service doc"],
+  ["adr_", "ADR"],
+];
+
+/** Derive a readable type and title from a corpus document_id such as rb_payments_upstream_timeout. */
+function describeDocument(id: string): { type: string; title: string } {
+  const match = DOCUMENT_TYPES.find(([prefix]) => id.startsWith(prefix));
+  const rest = match ? id.slice(match[0].length) : id;
+  const words = rest.split("_").filter(Boolean);
+  const title = words.join(" ").replace(/^\w/, (letter) => letter.toUpperCase());
+  return { type: match ? match[1] : "Retrieved guidance", title: title || id };
 }
 
 function Action({ incident }: { incident: Incident }) {
