@@ -18,9 +18,21 @@ data "aws_iam_policy_document" "github_oidc_assume" {
     }
 
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_org}/${var.github_repo}:*"]
+      values = [
+        "repo:${var.github_org}/${var.github_repo}:environment:${var.github_environment}",
+      ]
+    }
+
+    # Pin the calling workflow file on main so a pull request workflow cannot assume this role.
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:job_workflow_ref"
+      values = [
+        for name in var.github_workflows :
+        "${var.github_org}/${var.github_repo}/.github/workflows/${name}@refs/heads/main"
+      ]
     }
   }
 }
@@ -37,6 +49,11 @@ resource "aws_iam_openid_connect_provider" "github" {
       condition     = length(var.github_org) > 0 && var.github_org != "YOUR_GITHUB_ORG"
       error_message = "github_org must be set to a real GitHub org or user when enable_github_oidc is true."
     }
+
+    precondition {
+      condition     = length(var.github_environment) > 0
+      error_message = "github_environment must be set when enable_github_oidc is true."
+    }
   }
 }
 
@@ -44,27 +61,7 @@ resource "aws_iam_role" "ci_deploy" {
   count              = var.enable_github_oidc ? 1 : 0
   name               = "${var.project}-${var.environment}-ci-deploy"
   assume_role_policy = data.aws_iam_policy_document.github_oidc_assume[0].json
-  description        = "Skeleton CI role assumed by GitHub Actions via OIDC. Deploy permissions are added later."
-}
-
-# Skeleton only: identity check. Deploy permissions are added later.
-# sts:GetCallerIdentity does not support resource-level IAM, so Resource=* is required.
-data "aws_iam_policy_document" "ci_deploy_skeleton" {
-  count = var.enable_github_oidc ? 1 : 0
-
-  statement {
-    sid       = "CallerIdentity"
-    effect    = "Allow"
-    actions   = ["sts:GetCallerIdentity"]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_role_policy" "ci_deploy_skeleton" {
-  count  = var.enable_github_oidc ? 1 : 0
-  name   = "sts-caller-identity"
-  role   = aws_iam_role.ci_deploy[0].id
-  policy = data.aws_iam_policy_document.ci_deploy_skeleton[0].json
+  description        = "ci-deploy-role assumed by GitHub Actions via OIDC. No long-lived access keys."
 }
 
 data "aws_iam_policy_document" "lambda_assume" {

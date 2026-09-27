@@ -80,8 +80,26 @@ variable "budget_notification_emails" {
 
 variable "enable_github_oidc" {
   type        = bool
-  description = "Create GitHub OIDC provider and CI role skeleton."
+  description = "Create the GitHub OIDC provider and ci-deploy-role."
   default     = false
+}
+
+variable "github_environment" {
+  type        = string
+  description = "GitHub environment whose jobs may assume ci-deploy-role."
+  default     = "dev"
+}
+
+variable "terraform_state_bucket" {
+  type        = string
+  description = "Optional remote state bucket granted to ci-deploy-role."
+  default     = ""
+}
+
+variable "terraform_lock_table" {
+  type        = string
+  description = "Optional DynamoDB lock table granted to ci-deploy-role."
+  default     = ""
 }
 
 variable "github_org" {

@@ -258,6 +258,7 @@ def test_bedrock_adapter_reads_tool_use() -> None:
     assert turn.input_tokens == 12
 
 
+@pytest.mark.integration
 def test_runtime_entrypoint_updates_dynamodb(monkeypatch: pytest.MonkeyPatch) -> None:
     import boto3
     from moto import mock_aws

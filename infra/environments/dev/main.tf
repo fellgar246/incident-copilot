@@ -12,14 +12,17 @@ module "budgets" {
 module "iam" {
   source = "../../modules/iam"
 
-  project               = var.project
-  environment           = var.environment
-  aws_region            = var.aws_region
-  enable_github_oidc    = var.enable_github_oidc
-  github_org            = var.github_org
-  github_repo           = var.github_repo
-  incidents_table_arn   = module.dynamodb.incidents_table_arn
-  deployments_table_arn = module.dynamodb.deployments_table_arn
+  project                = var.project
+  environment            = var.environment
+  aws_region             = var.aws_region
+  enable_github_oidc     = var.enable_github_oidc
+  github_org             = var.github_org
+  github_repo            = var.github_repo
+  github_environment     = var.github_environment
+  terraform_state_bucket = var.terraform_state_bucket
+  terraform_lock_table   = var.terraform_lock_table
+  incidents_table_arn    = module.dynamodb.incidents_table_arn
+  deployments_table_arn  = module.dynamodb.deployments_table_arn
 }
 
 module "dynamodb" {
@@ -83,6 +86,7 @@ module "api" {
   event_bus_name         = module.events.event_bus_name
   event_bus_arn          = module.events.event_bus_arn
   event_source           = module.events.event_source
+  cors_origins           = "http://localhost:3000,${module.frontend.dashboard_url}"
 }
 
 module "observability" {

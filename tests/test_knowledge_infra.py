@@ -18,7 +18,7 @@ def test_knowledge_bucket_and_role_stay_narrow() -> None:
     assert "s3:*" not in text
     assert "opensearch" not in text.lower()
     dev = DEV.read_text(encoding="utf-8")
-    assert "module \"knowledge_base\"" in dev
+    assert 'module "knowledge_base"' in dev
     assert "knowledge_corpus_enabled" in dev
     script = SCRIPT.read_text(encoding="utf-8")
     assert "KNOWLEDGE_APPLY" in script

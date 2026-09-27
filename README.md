@@ -1,27 +1,95 @@
 # AI Incident Copilot
 
-Teams lose time correlating alarms, logs, metrics, deployments, and runbooks during an incident. This copilot uses a governed agent to gather evidence through typed tools, retrieve operational knowledge, propose a fix, wait for a human, then act — and measure quality plus estimated cost.
+## Problem
 
-The success criterion is not a convincing model reply. It is a traceable loop:
+Teams lose time correlating alarms, logs, metrics, deployments, and runbooks during an incident.
+
+## Solution
+
+A governed agent gathers evidence through typed tools, retrieves operational knowledge, and proposes a remediation that waits for a human.
+
+## Differentiators
+
+- Tool-based agent
+- RAG over a small operational corpus
+- Event-driven ingest
+- Human approval before any side effect
+- Offline evaluations with quality gates
+- Application quotas and a circuit breaker
+- Per-incident traces, tokens, and estimated cost
+- Terraform
+- Serverless AWS
+
+An interviewer can answer six questions from this page: what problem it solves, how it uses AI, how it uses AWS, how it blocks dangerous actions, how quality is measured, and what a demo session costs.
 
 ```text
 Detect → Queue → Investigate → Retrieve → Reason → Propose
               → Approve → Act → Observe → Evaluate → Measure cost
 ```
 
-**AI** sits in AgentCore Runtime. It can call `query_logs`, `query_metrics`, `get_recent_deployments`, `search_runbooks`, and `request_remediation` through AgentCore Gateway. It cannot execute a remediation or talk to AWS generically.
+Diagram: [docs/architecture/diagram.md](docs/architecture/diagram.md).
 
-**AWS** is the real topology: EventBridge and CloudWatch for detection, DynamoDB for state, SQS for investigation jobs, Lambda/API Gateway for HTTP, S3 for the knowledge corpus, Terraform for infra, GitHub OIDC for CI.
+## How it uses AI
 
-**Safety:** `SAFE_WRITE` needs a valid, unexpired approval. Remediation without approval is denied. Destructive actions stay off.
+AgentCore Runtime runs one agent. The only model calls go through a Bedrock adapter (`BEDROCK_MODEL_ID`, default Nova Micro). The agent may call `query_logs`, `query_metrics`, `get_recent_deployments`, `search_runbooks`, and `request_remediation` via AgentCore Gateway. It cannot talk to AWS with a generic SDK, and it cannot execute the remediation itself.
 
-**Quality and cost:** every run records traces, tool calls, tokens, and estimated USD. Evaluations cover diagnosis accuracy, groundedness, and unsafe-action count. Application quotas plus a USD 5 / month `dev` budget cap spend. Design target, not a billing guarantee.
+`request_remediation` records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version. It does not restart cloud resources.
 
-The dashboard is the demo surface. AWS Console is not part of the product flow.
+## How it uses AWS
 
-## Current slice
+EventBridge and CloudWatch detect. DynamoDB stores the incident. SQS buffers the worker. Lambda and API Gateway serve HTTP. S3 holds the corpus and the static dashboard. CloudFront serves the dashboard. Terraform creates the stack. GitHub Actions assumes `ci-deploy-role` with OIDC.
 
-Product contract, foundation, local domain, HTTP + DynamoDB, event-driven ingest, read-only evidence tools, human approval for one simulated rollback, per-incident traces plus cost metrics, an offline evaluation suite with CI quality gates, and a static dashboard for the demo path. `request_remediation` only records a proposal. `POST /incidents/{id}/remediate` returns 403 `DENIED` unless that proposal has a valid, unexpired approval. The write flips a logical simulator version; it does not restart cloud resources. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions. `GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days.
+The dashboard is the demo surface. AWS Console is not part of the product flow. The interviewer script is [docs/architecture/demo.md](docs/architecture/demo.md): **Run simulation**, **Investigate**, **Execute remediation** (denied), **Approve**, **Execute remediation** again.
+
+## How dangerous actions are blocked
+
+`READ_ONLY` tools run inside quotas. `SAFE_WRITE` needs a human approval. `DESTRUCTIVE` actions are off. Logs and retrieved pages are untrusted data. A reached quota stops new AI work with `STOP_REASON=COST_OR_USAGE_GUARDRAIL` and keeps the incident. `AI_ENABLED=false` keeps the read APIs up. Full write-up: [docs/architecture/security-model.md](docs/architecture/security-model.md).
+
+## How quality is measured
+
+Offline cases in `evals/incidents.jsonl` score diagnosis accuracy, required-evidence recall, groundedness, and unsafe-action count. CI runs the PR subset on pull requests and the release profile on `main`. The latest summary is `GET /evaluations`. Targets: unsafe-action rate 0, diagnosis accuracy at least 85%, required-evidence recall at least 90%. The checked-in full run is at 1.0 / 1.0 / 1.0 with zero unsafe actions. That run is scripted and offline. It is not a claim about a live model.
+
+## What a demo session costs
+
+Design target for `dev`: **USD 5 / month**. That is a target, not a billing guarantee. AWS Budgets alert at USD 1, 3, and 5. They do not hard-stop spend. The hard stop is the application.
+
+Observed cost of one `deployment_regression` diagnosis, from the offline suite at Nova Micro list price: **USD 0.00046039**. The 24-case suite is **USD 0.00920775**. These are not an AWS invoice. After a live session, compare the hour in Cost Explorer and update this paragraph if the bill differs. Checklist: [docs/runbooks/cost-explorer-review.md](docs/runbooks/cost-explorer-review.md).
+
+| Component | Monthly design target (dev) |
+|---|---:|
+| Lambda, API, SQS, EventBridge, DynamoDB, S3 | USD 0–0.50 |
+| CloudWatch | USD 0–0.75 |
+| Managed knowledge base storage | USD 0.05–0.25 |
+| Managed knowledge base retrieval | USD 0.05–0.50 |
+| AgentCore Gateway | USD 0.01–0.10 |
+| AgentCore Runtime | USD 0.10–1.00 |
+| Bedrock inference | USD 0.50–2.50 |
+| Evaluations | USD 0.05–0.50 |
+| **Target** | **≤ USD 5** |
+
+If a real bill crosses the target: turn off continuous evaluations, lower incidents per day, lower `MAX_AGENT_TURNS`, lower tool calls and context, lower logs consulted, switch to a cheaper model, turn RAG off outside tests, then review Cost Explorer. `python scripts/estimate_cost.py` prints the same order.
+
+## Trade-offs
+
+**DynamoDB vs RDS.** Incident state is a small item plus a timeline. DynamoDB is pay-per-request and scales to zero. RDS would be a standing instance.
+
+**Managed Knowledge Base vs OpenSearch.** The corpus is tens of megabytes. Managed KB storage is about USD 5 per GB-month, so this corpus is cents. A dedicated OpenSearch collection has a minimum that misses the USD 5 target. The provider cannot create a KB without that collection, so retrieval uses a local index until a base id is set. Upload stays in `scripts/sync_knowledge.py` (dry-run by default).
+
+**Lambda vs ECS.** HTTP and the worker are idle almost all month. Lambda bills per millisecond. ECS would be a service to keep warm.
+
+**Single agent vs multi-agent.** One agent is enough to evaluate. Splitting investigation, remediation, and communications waits until one agent is actually hard to score.
+
+**No NAT Gateway in dev.** The functions are not in a VPC. A NAT Gateway is about USD 32 / month before data processing, which spends the monthly target by itself. Private connectivity is backlog, with that cost written down first.
+
+**Short retention.** Logs and traces live 7 days in `dev`.
+
+**No automatic destructive remediation.** The only write is a simulated rollback, and only after approval.
+
+## v1 surface
+
+`GET /metrics/costs` and `GET /incidents/{id}/agent-runs` return estimated cost, tokens, tool calls, runtime, and RAG calls. Trace and metric log groups retain data for 7 days. `remediation-tool-role` is limited to an incident-item update and explicitly denies compute and shell actions.
+
+Later work, including Cognito and a real Slack or PagerDuty hook, is in [docs/backlog.md](docs/backlog.md). Release risks and how they are mitigated: [docs/architecture/release-risks.md](docs/architecture/release-risks.md).
 
 ## Repository layout
 
@@ -134,13 +202,12 @@ Allowed log input is only `service`, `start_minutes_ago`, `level`, and `limit`. 
 
 ## Cost guardrails
 
-Design target: **USD 5 / month** for `dev`. This is a design goal, not a billing guarantee.
-
 Hard stops live in the application (`packages/cost-guardrails`):
 
 - Daily incident cap, agent turns, tool calls, RAG calls, token caps, session timeout
 - Circuit breakers: `AI_ENABLED`, `AGENT_INVOCATION_ENABLED`, `RAG_ENABLED`, `REMEDIATION_ENABLED`
-- When a quota is hit, work stops with `STOP_REASON=COST_OR_USAGE_GUARDRAIL`
+- When a quota is hit, work stops with `STOP_REASON=COST_OR_USAGE_GUARDRAIL` and no further model calls are made
+- `AI_ENABLED=false` leaves `GET /health`, `GET /incidents`, `GET /metrics/costs`, and `GET /evaluations` working
 
 AWS Budgets (Terraform module `infra/modules/budgets`):
 
@@ -151,7 +218,16 @@ AWS Budgets (Terraform module `infra/modules/budgets`):
 | USD 5 | actual | CRITICAL |
 | > USD 5 | forecast | CRITICAL |
 
-Budgets are not real-time kill switches.
+```bash
+python scripts/estimate_cost.py
+python scripts/verify_quotas.py
+```
+
+Cleanup of a `dev` or `ephemeral-*` stack: [docs/runbooks/destroy-ephemeral.md](docs/runbooks/destroy-ephemeral.md). Dry-run:
+
+```bash
+python scripts/cleanup_dev.py --environment dev
+```
 
 ## Terraform bootstrap
 
@@ -172,18 +248,26 @@ Confirm AgentCore and Managed Knowledge Base availability in the chosen region b
 
 ## GitHub OIDC (no long-lived access keys)
 
+The first apply is still a human with an admin role. After that, GitHub assumes `ci-deploy-role`.
+
 1. Enable MFA on the AWS account / IAM users that can assume admin roles.
-2. Copy `terraform.tfvars.example` and set:
+2. Create the remote state bucket and lock table described in `backend.hcl.example`.
+3. Copy `terraform.tfvars.example` and set:
 
    ```hcl
-   enable_github_oidc = true
-   github_org         = "YOUR_ORG_OR_USER"
-   github_repo        = "ai-incident-copilot"
+   enable_github_oidc     = true
+   github_org             = "YOUR_ORG_OR_USER"
+   github_repo            = "ai-incident-copilot"
+   github_environment     = "dev"
+   terraform_state_bucket = "YOUR_STATE_BUCKET"
+   terraform_lock_table   = "ai-incident-copilot-tf-locks"
    ```
 
-3. `terraform apply` creates `token.actions.githubusercontent.com` as an OIDC provider and a `ci-deploy` role that can only call `sts:GetCallerIdentity`.
-4. In GitHub, add `AWS_ROLE_ARN` as a repository variable pointing at the role output `ci_deploy_role_arn`. Workflows should use `aws-actions/configure-aws-credentials` with `role-to-assume`. Never store `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in GitHub.
-5. Deploy permissions are intentionally empty in this skeleton; they are widened later with least privilege.
+4. `terraform apply` creates the OIDC provider and `ci-deploy-role`. The role can manage this stack's prefixed resources. It cannot create IAM users or access keys. `Resource=*` is only used where the AWS API requires it (listed in `infra/modules/iam/ci_deploy.tf`).
+5. Create the GitHub environment `dev` with a required reviewer. Store `AWS_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_LOCK_TABLE`, and `TF_TFVARS` as repository variables. Steps: [docs/runbooks/github-environment.md](docs/runbooks/github-environment.md).
+6. Workflows use `aws-actions/configure-aws-credentials` with `role-to-assume`. Never store `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` in GitHub.
+
+Pull requests run lint, typecheck, unit tests, integration tests, the secret scan, offline evals, and `terraform validate`. They do not assume the AWS role. A push to `main` plans and applies only after the `dev` environment is approved and those variables exist. The plan file is applied on the same runner because the Lambda zip hash includes file timestamps. Smoke then calls health, simulate, investigate when AI is on, a denied remediation, approve, and the approved remediation.
 
 ## IAM roles (target)
 
@@ -197,7 +281,7 @@ remediation-tool-role
 ci-deploy-role
 ```
 
-`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `cloudwatch-read-tool-role` may filter the demo log groups and read the `AIIncidentCopilot/Demo` metric namespace. `knowledge-tool-role` may read the corpus bucket and call `bedrock:Retrieve`. `ci-deploy-role` exists only when OIDC is enabled.
+`api-role` is the API Lambda execution role: CloudWatch logs for that function, Get/Put/Query/Scan/Describe on the incidents and deployments tables, and `events:PutEvents` on the incident bus. `investigation-worker-role` may write the incidents table and read the ingest SQS queue. `cloudwatch-read-tool-role` may filter the demo log groups and read the `AIIncidentCopilot/Demo` metric namespace. `knowledge-tool-role` may read the corpus bucket and call `bedrock:Retrieve`. `ci-deploy-role` exists only when OIDC is enabled and is the role GitHub assumes.
 
 ## Make targets
 
@@ -207,13 +291,18 @@ ci-deploy-role
 | `make lint` | Ruff + ESLint |
 | `make fmt` | Ruff format + `terraform fmt` |
 | `make typecheck` | mypy + `tsc --noEmit` |
-| `make test` | pytest |
+| `make test` | pytest (unit and integration) |
+| `make test-unit` | pytest excluding moto-backed tests |
+| `make test-integration` | moto-backed pytest |
+| `make security` | secret scan |
 | `make terraform-validate` | `terraform init -backend=false` + validate |
 | `make run-api` | Uvicorn for `apps/api` |
 | `make openapi` | Refresh `apps/api/openapi.json` |
 | `make eval` | Offline PR evaluation subset |
 | `make eval-full` | Full offline evaluation suite |
-| `make ci` | Lint, typecheck, test, PR eval gates, terraform-validate |
+| `make estimate-cost` | Demo-session estimate and design envelope |
+| `make verify-quotas` | Load quotas and check the circuit breaker |
+| `make ci` | Lint, typecheck, test, security, PR eval gates, terraform-validate |
 
 ## Docs
 
@@ -223,6 +312,14 @@ ci-deploy-role
 - [ADR-004 Event-driven incident ingest](docs/adrs/ADR-004-event-ingestion.md)
 - [ADR-005 Telemetry evidence tools](docs/adrs/ADR-005-telemetry-tools.md)
 - [ADR-009 Offline evaluations](docs/adrs/ADR-009-evaluations.md)
+- [ADR-010 Platform CI/CD and release](docs/adrs/ADR-010-platform-cicd.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [Diagram](docs/architecture/diagram.md)
+- [Security model](docs/architecture/security-model.md)
+- [Release risks](docs/architecture/release-risks.md)
 - [Demo script](docs/architecture/demo.md)
 - [Account bootstrap](docs/runbooks/account-bootstrap.md)
+- [GitHub environment](docs/runbooks/github-environment.md)
+- [Cost Explorer review](docs/runbooks/cost-explorer-review.md)
+- [Destroy dev](docs/runbooks/destroy-ephemeral.md)
+- [Backlog](docs/backlog.md)

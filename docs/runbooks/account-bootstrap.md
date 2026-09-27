@@ -21,16 +21,17 @@ Complete this once before applying business infrastructure. After MFA and the bu
 - [ ] `terraform apply` the `dev` stack to create the USD 5 monthly budget (INFO at $1, WARNING at $3, CRITICAL at $5 actual and forecast).
 - [ ] Confirm global tags on created resources: `project=ai-incident-copilot`, `environment=dev`, `owner=portfolio`.
 
-## GitHub OIDC skeleton
+## GitHub OIDC
 
 Leave `enable_github_oidc = false` until the GitHub org/user is known.
 
-- [ ] Set `enable_github_oidc = true`, `github_org`, and `github_repo`.
+- [ ] Set `enable_github_oidc = true`, `github_org`, `github_repo`, `github_environment`, and the remote state bucket and lock table.
 - [ ] Apply and record output `ci_deploy_role_arn`.
-- [ ] In GitHub, store `AWS_ROLE_ARN` as a repository variable. Workflows must use `aws-actions/configure-aws-credentials` with `role-to-assume`.
+- [ ] Create the GitHub environment `dev` with a required reviewer. See [github-environment.md](github-environment.md).
+- [ ] Store `AWS_ROLE_ARN`, `TF_STATE_BUCKET`, `TF_LOCK_TABLE`, and `TF_TFVARS` as repository variables.
 - [ ] Do not store `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCESS_KEY` in GitHub.
 
-Deploy permissions on `ci-deploy-role` are limited to `sts:GetCallerIdentity` in this bootstrap. Widen them later with least privilege.
+`ci-deploy-role` can manage this stack. It cannot create IAM users or access keys. A job must use the `dev` environment, and the workflow file must be `ci.yml` or `destroy-ephemeral.yml` on `main`.
 
 ## State
 

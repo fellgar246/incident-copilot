@@ -10,8 +10,32 @@ variable "environment" {
 
 variable "enable_github_oidc" {
   type        = bool
-  description = "Create the GitHub OIDC provider and CI deploy role skeleton."
+  description = "Create the GitHub OIDC provider and ci-deploy-role."
   default     = false
+}
+
+variable "github_environment" {
+  type        = string
+  description = "GitHub environment allowed to assume ci-deploy-role for apply and destroy."
+  default     = "dev"
+}
+
+variable "github_workflows" {
+  type        = list(string)
+  description = "Workflow filenames on main that may assume ci-deploy-role."
+  default     = ["ci.yml", "destroy-ephemeral.yml"]
+}
+
+variable "terraform_state_bucket" {
+  type        = string
+  description = "Remote state bucket the CI role may read and write. Empty skips that grant."
+  default     = ""
+}
+
+variable "terraform_lock_table" {
+  type        = string
+  description = "DynamoDB lock table the CI role may use. Empty skips that grant."
+  default     = ""
 }
 
 variable "github_org" {

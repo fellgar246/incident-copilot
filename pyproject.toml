@@ -56,6 +56,9 @@ pythonpath = [
   "packages/evaluations/src",
 ]
 addopts = "-q --strict-markers"
+markers = [
+  "integration: exercises AWS service behavior through moto",
+]
 
 [tool.mypy]
 python_version = "3.12"

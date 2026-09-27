@@ -13,6 +13,8 @@ from moto import mock_aws
 
 from simulator import simulate
 
+pytestmark = pytest.mark.integration
+
 LIMITS = ToolLimits()
 REGION = "us-east-1"
 NOW = datetime(2026, 9, 21, 12, 0, tzinfo=UTC)

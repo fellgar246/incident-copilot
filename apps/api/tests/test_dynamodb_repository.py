@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import boto3
+import pytest
 from api.persistence.dynamodb import DynamoIncidentRepository
 from incident_contracts.enums import ActorKind, EventType, IncidentStatus, Severity
 from incident_contracts.models import Deployment, Incident, IncidentEvent
@@ -10,6 +11,8 @@ from incident_contracts.service import IncidentService
 from moto import mock_aws
 
 from simulator import simulate
+
+pytestmark = pytest.mark.integration
 
 NOW = datetime(2026, 9, 20, 14, 0, tzinfo=UTC)
 REGION = "us-east-1"

@@ -4,7 +4,7 @@ output "github_oidc_provider_arn" {
 }
 
 output "ci_deploy_role_arn" {
-  description = "ARN of the CI deploy role skeleton, if enabled."
+  description = "ARN of ci-deploy-role, if OIDC is enabled."
   value       = try(aws_iam_role.ci_deploy[0].arn, null)
 }
 

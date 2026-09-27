@@ -8,7 +8,7 @@ from api.main import create_app
 from api.persistence.deployments import InMemoryDeploymentRepository
 from api.settings import Settings
 from cost_guardrails.envfile import parse_env_file
-from cost_guardrails.quotas import load_quotas
+from cost_guardrails.quotas import STOP_REASON, load_quotas
 from fastapi.testclient import TestClient
 from incident_contracts.enums import IncidentStatus, ScenarioId
 from incident_contracts.repository import InMemoryIncidentRepository
@@ -247,6 +247,79 @@ def test_simulate_publishes_detected_event_once(
     event = publisher.events[0]
     assert event.event_id == first.json()["source_event_id"]  # type: ignore[attr-defined]
     assert event.correlation_id == first.json()["correlation_id"]  # type: ignore[attr-defined]
+
+
+def test_ai_disabled_keeps_read_apis_and_blocks_investigation(
+    settings: Settings,
+    repository: InMemoryIncidentRepository,
+    deployments: InMemoryDeploymentRepository,
+) -> None:
+    quotas = replace(load_quotas(ENV_EXAMPLE), ai_enabled=False, agent_invocation_enabled=False)
+    client = TestClient(
+        create_app(
+            container=build_container(
+                settings=settings,
+                store=repository,
+                deployments=deployments,
+                quotas=quotas,
+            )
+        )
+    )
+    created = client.post(
+        "/incidents/simulate",
+        json={"scenario": ScenarioId.DEPLOYMENT_REGRESSION.value, "seed": "ai-off"},
+    )
+    assert created.status_code == 201
+    incident_id = created.json()["incident_id"]
+    assert client.get("/health").status_code == 200
+    assert client.get("/incidents").status_code == 200
+    assert client.get(f"/incidents/{incident_id}").status_code == 200
+    assert client.get(f"/incidents/{incident_id}/events").status_code == 200
+    assert client.get("/metrics/costs").status_code == 200
+    assert client.get("/evaluations").status_code == 200
+    blocked = client.post(
+        f"/incidents/{incident_id}/investigate",
+        headers={"Idempotency-Key": "ai-off"},
+    )
+    assert blocked.status_code == 409
+    assert blocked.json()["detail"]["stop_reason"] == STOP_REASON
+
+
+def test_agent_run_quota_stops_new_investigations(
+    settings: Settings,
+    repository: InMemoryIncidentRepository,
+    deployments: InMemoryDeploymentRepository,
+) -> None:
+    quotas = replace(load_quotas(ENV_EXAMPLE), max_agent_runs_per_incident=1)
+    client = TestClient(
+        create_app(
+            container=build_container(
+                settings=settings,
+                store=repository,
+                deployments=deployments,
+                quotas=quotas,
+            )
+        )
+    )
+    created = client.post(
+        "/incidents/simulate",
+        json={"scenario": ScenarioId.DEPLOYMENT_REGRESSION.value, "seed": "run-cap"},
+    )
+    assert created.status_code == 201
+    incident_id = created.json()["incident_id"]
+    first = client.post(
+        f"/incidents/{incident_id}/investigate",
+        headers={"Idempotency-Key": "run-1"},
+    )
+    second = client.post(
+        f"/incidents/{incident_id}/investigate",
+        headers={"Idempotency-Key": "run-2"},
+    )
+    assert first.status_code == 201
+    assert second.status_code == 429
+    assert second.json()["detail"]["stop_reason"] == STOP_REASON
+    assert client.get(f"/incidents/{incident_id}").status_code == 200
+    assert client.get("/metrics/costs").status_code == 200
 
 
 def _span_names(trace: dict[str, object]) -> set[str]:

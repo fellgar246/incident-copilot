@@ -4,7 +4,7 @@ ifneq (,$(wildcard $(CURDIR)/.venv/bin/python))
   PYTHON := $(CURDIR)/.venv/bin/python
 endif
 
-.PHONY: help install lint fmt typecheck test terraform-fmt terraform-validate ci eval eval-full run-api openapi
+.PHONY: help install lint fmt typecheck test test-unit test-integration security terraform-fmt terraform-validate ci eval eval-full run-api openapi estimate-cost verify-quotas
 
 help:
 	@echo "Targets:"
@@ -12,14 +12,19 @@ help:
 	@echo "  lint                 Ruff + ESLint"
 	@echo "  fmt                  Ruff format + terraform fmt"
 	@echo "  typecheck            mypy + tsc"
-	@echo "  test                 pytest"
+	@echo "  test                 pytest (unit and integration)"
+	@echo "  test-unit            pytest excluding moto-backed integration tests"
+	@echo "  test-integration     pytest -m integration"
+	@echo "  security             Scan tracked files for AWS keys and static credentials"
 	@echo "  terraform-fmt        terraform fmt -recursive"
 	@echo "  terraform-validate   terraform fmt -check + init -backend=false + validate"
 	@echo "  run-api              Run the FastAPI app locally (in-memory repository)"
 	@echo "  openapi              Write apps/api/openapi.json from the live application"
 	@echo "  eval                 Offline PR evaluation subset and quality gates"
 	@echo "  eval-full            Offline evaluation suite"
-	@echo "  ci                   lint, typecheck, test, eval, terraform-validate"
+	@echo "  estimate-cost        Print the demo-session estimate and design envelope"
+	@echo "  verify-quotas        Load quotas and check the AI circuit breaker"
+	@echo "  ci                   lint, typecheck, test, security, eval, terraform-validate"
 
 install:
 	$(PYTHON) -m pip install -e packages/cost-guardrails -e packages/contracts -e packages/observability -e packages/evaluations -e services/simulator -e services/incident-worker -e services/tools/cloudwatch -e services/tools/deployments -e services/tools/knowledge -e services/tools/remediation -e services/agent -e apps/api -e ".[dev]"
@@ -40,6 +45,21 @@ typecheck:
 test:
 	$(PYTHON) -m pytest
 
+test-unit:
+	$(PYTHON) -m pytest -m "not integration"
+
+test-integration:
+	$(PYTHON) -m pytest -m integration
+
+security:
+	$(PYTHON) scripts/scan_secrets.py
+
+estimate-cost:
+	$(PYTHON) scripts/estimate_cost.py
+
+verify-quotas:
+	$(PYTHON) scripts/verify_quotas.py
+
 eval:
 	$(PYTHON) scripts/run_evaluations.py --profile pr
 
@@ -54,7 +74,7 @@ terraform-validate:
 	cd $(TERRAFORM_DIR) && terraform init -backend=false -input=false
 	cd $(TERRAFORM_DIR) && terraform validate
 
-ci: lint typecheck test eval terraform-validate
+ci: lint typecheck test security eval terraform-validate
 
 run-api:
 	$(PYTHON) -m uvicorn api.main:app --reload --app-dir apps/api/src

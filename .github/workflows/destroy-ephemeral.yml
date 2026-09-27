@@ -1,0 +1,62 @@
+name: Destroy ephemeral
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type destroy-dev to tear down the dev stack
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: terraform-destroy-dev
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'destroy-dev' && vars.AWS_ROLE_ARN != '' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: ci-destroy-dev
+
+      - name: Write terraform.tfvars
+        env:
+          TF_TFVARS: ${{ vars.TF_TFVARS }}
+        run: |
+          if [ -z "$TF_TFVARS" ]; then
+            echo "Set the TF_TFVARS repository variable before destroy."
+            exit 1
+          fi
+          printf '%s\n' "$TF_TFVARS" > infra/environments/dev/terraform.tfvars
+
+      - name: Destroy dev
+        env:
+          DESTROY_EPHEMERAL: "1"
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+        run: python scripts/cleanup_dev.py --environment dev --apply --confirm destroy-dev

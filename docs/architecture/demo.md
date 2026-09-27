@@ -1,6 +1,6 @@
 # Primary demo script
 
-The happy path is `deployment_regression`. The dashboard is the only console the interviewer needs.
+The happy path is `deployment_regression`. The dashboard is the only console the interviewer needs. Button labels below match the UI.
 
 1. Open the dashboard with no active incidents.
 2. Run the `deployment_regression` scenario.

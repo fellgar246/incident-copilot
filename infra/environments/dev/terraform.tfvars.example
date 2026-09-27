@@ -10,4 +10,7 @@ ai_enabled               = true
 enable_github_oidc       = false
 github_org               = "YOUR_GITHUB_ORG"
 github_repo              = "ai-incident-copilot"
+github_environment       = "dev"
+terraform_state_bucket   = ""
+terraform_lock_table     = ""
 budget_notification_emails = []

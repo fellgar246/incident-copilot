@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import boto3
+import pytest
 from incident_contracts.enums import ScenarioId
 from incident_contracts.events import detected_event_from_fixture
 from incident_worker.envelope import unwrap_sqs_body
@@ -12,6 +13,8 @@ from incident_worker.store import build_repository
 from moto import mock_aws
 
 from simulator import simulate
+
+pytestmark = pytest.mark.integration
 
 REGION = "us-east-1"
 INCIDENTS = "test-incidents"

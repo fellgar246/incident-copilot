@@ -15,6 +15,8 @@ from moto import mock_aws
 
 from simulator import seed_fixture, simulate
 
+pytestmark = pytest.mark.integration
+
 LIMITS = ToolLimits()
 REGION = "us-east-1"
 
